@@ -58,13 +58,13 @@ export async function updateSession(request) {
       return NextResponse.redirect(url)
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
+    const { data: employee } = await supabase
+      .from('employees')
       .select('role')
-      .eq('id', user.id)
+      .eq('auth_id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!employee || employee.role !== 'admin') {
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }

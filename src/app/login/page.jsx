@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Navbar } from "@/components/layout/Navbar";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -29,7 +30,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center p-4">
+    <>
+      <Navbar />
+      <div className="flex h-[calc(100vh-64px)] w-full items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-center">Sistem Cuti</CardTitle>
@@ -69,5 +72,6 @@ export default function LoginPage() {
         )}
       </Card>
     </div>
+    </>
   )
 }

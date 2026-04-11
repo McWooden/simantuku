@@ -66,6 +66,17 @@ export default function LeaveFormPage() {
         return
       }
 
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('auth_id', user.id)
+        .single()
+
+      if (!employee) {
+        setError('Your account is not linked to an official employee profile.')
+        return
+      }
+
       // Sort dates and convert to YYYY-MM-DD
       const formattedDates = [...dates]
         .sort((a, b) => a.getTime() - b.getTime())
@@ -79,7 +90,7 @@ export default function LeaveFormPage() {
       const { error: insertError } = await supabase
         .from('cuti')
         .insert({
-          userid: user.id,
+          employee_id: employee.id,
           category,
           dates: formattedDates,
           note,

@@ -12,6 +12,33 @@ export async function GET(request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Begin Auto-Link Logic
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: existingEmployee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('auth_id', user.id)
+          .single()
+        
+        if (!existingEmployee && user.email) {
+          const { data: unlinkedEmployee } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('email', user.email)
+            .is('auth_id', null)
+            .single()
+          
+          if (unlinkedEmployee) {
+            await supabase
+              .from('employees')
+              .update({ auth_id: user.id })
+              .eq('id', unlinkedEmployee.id)
+          }
+        }
+      }
+      // End Auto-Link Logic
+
       const forwardedHost = request.headers.get('x-forwarded-host') 
       const isLocalEnv = process.env.NODE_ENV === 'development'
       if (isLocalEnv) {

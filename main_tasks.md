@@ -31,7 +31,8 @@
 ## 6. Admin Panel
 - [x] Build `/admin` dashboard overview.
 - [x] Build `/admin/requests` to approve/reject cuti.
-- [ ] Build `/admin/users` to view profiles.
+- [x] Build `/admin/users` to view profiles.
+- [x] Build `/admin/users/[id]` for detailed profile view.
 
 ## 7. UI Improvements & Polish
 - [x] Implement `DateDetailsModal` for viewing leave dates.

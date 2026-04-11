@@ -19,21 +19,21 @@ export default async function AdminRequestsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
+  const { data: employee } = await supabase
+    .from('employees')
     .select('role')
-    .eq('id', user.id)
+    .eq('auth_id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin') redirect('/dashboard')
 
   // Fetch all pending requests with user information (joining profiles)
   const { data: requests, error } = await supabase
     .from('cuti')
     .select(`
       *,
-      profiles (
-        username
+      employees (
+        name
       )
     `)
     .order('created_at', { ascending: false })
@@ -66,7 +66,7 @@ export default async function AdminRequestsPage() {
               requests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
-                    {request.profiles?.username || 'Unknown Employee'}
+                    {request.employees?.name || 'Unknown Employee'}
                   </TableCell>
                   <TableCell>{request.category}</TableCell>
                   <TableCell>

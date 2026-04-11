@@ -18,12 +18,12 @@ export function Navbar() {
       setUser(user)
       
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
+        const { data: employee } = await supabase
+          .from('employees')
           .select('role')
-          .eq('id', user.id)
+          .eq('auth_id', user.id)
           .single()
-        setRole(profile?.role)
+        setRole(employee?.role)
       }
     }
     getUser()
@@ -32,12 +32,12 @@ export function Navbar() {
       async (_event, session) => {
         setUser(session?.user || null)
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
+          const { data: employee } = await supabase
+            .from('employees')
             .select('role')
-            .eq('id', session.user.id)
+            .eq('auth_id', session.user.id)
             .single()
-          setRole(profile?.role)
+          setRole(employee?.role)
         } else {
           setRole(null)
         }
@@ -58,11 +58,11 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b bg-background">
+    <nav className="sticky top-0 z-50 border-b bg-white/70 backdrop-blur-md shadow-sm">
       <div className="container mx-auto max-w-5xl flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-bold text-lg tracking-tight">
-            Cuti<span className="text-primary">App</span>
+          <Link href="/" className="font-bold text-xl tracking-tight text-primary">
+            Simantuku
           </Link>
           {user && (
             <div className="hidden md:flex gap-4">
