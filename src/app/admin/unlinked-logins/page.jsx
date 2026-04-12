@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { 
   Table, 
   TableBody, 
@@ -72,6 +74,11 @@ export default async function AdminUnlinkedLoginsPage() {
             Users who logged in via Google but aren't currently mapped to an Official Employee Record.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/admin/employees/create">
+            <Plus className="mr-2 h-4 w-4" /> Add Employee
+          </Link>
+        </Button>
       </div>
 
       <div className="rounded-md border">

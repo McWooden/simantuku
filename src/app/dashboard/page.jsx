@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
 import { CalendarDays, PlusCircle, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { CancelLeaveButton } from './CancelLeaveButton'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -29,31 +30,14 @@ export default async function DashboardPage() {
     redirect('/pending')
   }
 
-  // Calculate leave quota
-  // Default is 12 days. Subtract approved 'Tahunan' leaves for the current year.
-  const currentYear = new Date().getFullYear()
-
-  const { data: approvedLeaves } = await supabase
-    .from('cuti')
-    .select('dates')
-    .eq('employee_id', employee.id)
-    .eq('category', 'Tahunan')
-    .eq('status', 'acc')
-
-  let daysTaken = 0
-  if (approvedLeaves) {
-    approvedLeaves.forEach(leave => {
-      if (Array.isArray(leave.dates)) {
-        // Filter dates that belong to the current year
-        const datesInCurrentYear = leave.dates.filter(dateStr => {
-          return dateStr.startsWith(`${currentYear}`)
-        })
-        daysTaken += datesInCurrentYear.length
-      }
-    })
-  }
-
-  const remainingQuota = 12 - daysTaken
+  // Calculate leave quota using the new advanced bucket logic
+  const { getLeaveQuotaOverviewAction } = await import('@/app/actions/leaveActions')
+  const quotaOverview = await getLeaveQuotaOverviewAction(employee.id)
+  const remainingQuota = quotaOverview.totalRemaining
+  const totalAllowed = quotaOverview.totalAllowed
+  const progressPercent = quotaOverview.progressPercent
+  const buckets = quotaOverview.buckets || []
+  const currentYear = new Date().getFullYear();
 
   // Fetch recent leave history
   const { data: leaveHistory } = await supabase
@@ -62,6 +46,8 @@ export default async function DashboardPage() {
     .eq('employee_id', employee.id)
     .order('created_at', { ascending: false })
     .limit(5)
+
+  const hasPending = leaveHistory?.some(l => l.status === 'pending');
 
   return (
     <div className="space-y-8 pt-4">
@@ -83,6 +69,18 @@ export default async function DashboardPage() {
         <div className="absolute bottom-0 right-32 translate-y-1/2 w-48 h-48 bg-white/10 rounded-full blur-xl" />
       </div>
 
+      {hasPending && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4 text-amber-800 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="p-2 bg-amber-100 rounded-full">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold">Pending Request in Progress</h4>
+            <p className="text-sm opacity-90">You currently have a request awaiting approval. You won't be able to submit a new one until this is resolved or cancelled.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-3">
         {/* Advanced Quota Card */}
         <Card className="col-span-1 border-none shadow-md bg-white overflow-hidden relative group hover:shadow-xl transition-all duration-300">
@@ -96,7 +94,7 @@ export default async function DashboardPage() {
                     {remainingQuota}
                   </span>
                   <span className="text-lg font-medium text-muted-foreground mb-1">
-                    / 12
+                    / {totalAllowed}
                   </span>
                 </div>
               </div>
@@ -108,11 +106,39 @@ export default async function DashboardPage() {
             <div className="mt-6 w-full bg-secondary rounded-full h-2.5 overflow-hidden">
               <div 
                 className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${(remainingQuota / 12) * 100}%` }}
+                style={{ width: `${progressPercent}%` }}
               ></div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Remaining days for {currentYear}. Resets in January.
+
+            <div className="mt-6 space-y-3">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Quota Breakdown</p>
+              {buckets.slice().reverse().map((bucket) => (
+                <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-slate-700">
+                      Year {bucket.year} 
+                      {bucket.year === currentYear ? (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Current</span>
+                      ) : bucket.year === currentYear - 1 ? (
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Last Year</span>
+                      ) : bucket.year === currentYear - 2 ? (
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Years Ago</span>
+                      ) : null}
+                    </span>
+                    {bucket.expires_at && (
+                      <span className="text-[10px] text-muted-foreground">Expires {format(new Date(bucket.expires_at), 'MMM d, yyyy')}</span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900">{bucket.remaining}</span>
+                    <span className="text-slate-400"> / {bucket.total} d</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground mt-4 italic">
+              * Quota prioritizes using the oldest expiring days first.
             </p>
           </CardContent>
         </Card>
@@ -185,7 +211,10 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-3">
+                      {leave.status === 'pending' && (
+                        <CancelLeaveButton leaveId={leave.id} />
+                      )}
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider
                         ${isAcc ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' :
                           isRejected ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' :

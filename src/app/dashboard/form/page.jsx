@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect } from 'react'
+import { submitLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
+import { AlertCircle, Clock } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -20,10 +22,34 @@ import { memo } from 'react'
 
 export default function LeaveFormPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [loading, setLoading] = useState(false)
+  const [checkingPending, setCheckingPending] = useState(true)
+  const [hasPending, setHasPending] = useState(false)
   const [error, setError] = useState('')
+
+  // Check for pending requests on mount
+  useEffect(() => {
+    async function checkPending() {
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: employee } = await supabase.from('employees').select('id').eq('auth_id', user.id).single()
+          if (employee) {
+            const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
+            setHasPending(count > 0)
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setCheckingPending(false)
+      }
+    }
+    checkPending()
+  }, [])
   const [dates, setDates] = useState([])
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
@@ -59,24 +85,6 @@ export default function LeaveFormPage() {
         return
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        setError('You must be logged in.')
-        return
-      }
-
-      const { data: employee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('auth_id', user.id)
-        .single()
-
-      if (!employee) {
-        setError('Your account is not linked to an official employee profile.')
-        return
-      }
-
       // Sort dates and convert to YYYY-MM-DD
       const formattedDates = [...dates]
         .sort((a, b) => a.getTime() - b.getTime())
@@ -87,21 +95,12 @@ export default function LeaveFormPage() {
           return `${year}-${month}-${day}`
         })
 
-      const { error: insertError } = await supabase
-        .from('cuti')
-        .insert({
-          employee_id: employee.id,
-          category,
-          dates: formattedDates,
-          note,
-          status: 'pending'
-        })
+      const res = await submitLeaveAction(category, formattedDates, note);
 
-      if (insertError) {
-        setError(insertError.message)
+      if (res?.error) {
+        setError(res.error)
       } else {
         router.push('/dashboard')
-        router.refresh() // Ensure dashboard picks up the new data
       }
     } catch (err) {
       console.error('Submission error:', err)
@@ -122,7 +121,18 @@ export default function LeaveFormPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+            {hasPending && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-amber-800 mb-6">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-bold">Access Restricted</p>
+                  <p>You currently have a **Pending** request. You cannot submit a new one until your current request is approved, rejected, or cancelled.</p>
+                </div>
+              </div>
+            )}
+            
+            <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="alreadyHaveFile"
@@ -176,13 +186,14 @@ export default function LeaveFormPage() {
             <NoteInput value={note} onChange={setNote} />
 
             {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+            </div>
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Request'}
+            <Button type="submit" disabled={loading || hasPending || checkingPending}>
+              {loading ? 'Submitting...' : hasPending ? 'Request Blocked' : 'Submit Request'}
             </Button>
           </CardFooter>
         </form>

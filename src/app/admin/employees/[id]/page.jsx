@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, User, Calendar, FileText } from 'lucide-react'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
+import { EditableEmployeeName } from './EditableEmployeeName'
+import { EditableEmployeeDate } from './EditableEmployeeDate'
 
 export default async function UserProfilePage({ params }) {
   const { id } = await params
@@ -70,13 +72,17 @@ export default async function UserProfilePage({ params }) {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{targetEmployee.name}</div>
+            <EditableEmployeeName employeeId={targetEmployee.id} initialName={targetEmployee.name} />
             <p className="text-xs text-muted-foreground flex items-center justify-between mt-1">
               Role: <Badge variant={targetEmployee.role === 'admin' ? 'default' : 'secondary'}>{targetEmployee.role.toUpperCase()}</Badge>
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               Email: {targetEmployee.email}
             </p>
+            <div className="text-xs text-muted-foreground mt-2 border-t pt-2">
+              <span className="font-semibold block mb-1">Joined On:</span>
+              <EditableEmployeeDate employeeId={targetEmployee.id} initialDate={targetEmployee.start_date} />
+            </div>
           </CardContent>
         </Card>
 

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, FileText, CheckCircle, ArrowRight, Clock, ShieldCheck, Activity } from 'lucide-react'
+import { Users, FileText, CheckCircle, ArrowRight, Clock, ShieldCheck, Activity, Link2 } from 'lucide-react'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
@@ -165,6 +165,21 @@ export default async function AdminDashboardPage() {
               <div>
                 <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-indigo-700 transition-colors">Employee Directory</h3>
                 <p className="text-muted-foreground">Manage your team, create official profiles, and update quota balances.</p>
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/admin/unlinked-logins" className="group block focus:outline-none md:col-span-2 lg:col-span-1">
+          <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-emerald-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
+            <div className="flex items-start gap-4">
+              <div className="p-4 bg-emerald-100/50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                <Link2 className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">Pending Access (Unlinked)</h3>
+                <p className="text-muted-foreground">Map new Google accounts to the official Employee Directory.</p>
               </div>
             </div>
           </div>

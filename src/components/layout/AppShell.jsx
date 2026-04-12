@@ -11,10 +11,10 @@ import {
   CheckSquare, 
   Users, 
   Settings, 
-  LogOut,
   FileCheck2
 } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { getLeaveQuotaOverviewAction } from '@/app/actions/leaveActions'
 
 export async function AppShell({ children }) {
   const supabase = await createClient()
@@ -35,26 +35,10 @@ export async function AppShell({ children }) {
   // 3. User Metadata (Avatar)
   const avatarUrl = user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=6e62e5&color=fff`
 
-  // 4. Calculate Quota for Right Sidebar
-  const currentYear = new Date().getFullYear()
-  const { data: approvedLeaves } = await supabase
-    .from('cuti')
-    .select('dates')
-    .eq('employee_id', employee.id)
-    .eq('category', 'Tahunan')
-    .eq('status', 'acc')
-
-  let daysTaken = 0
-  if (approvedLeaves) {
-    approvedLeaves.forEach(leave => {
-      if (Array.isArray(leave.dates)) {
-        const datesInCurrentYear = leave.dates.filter(dateStr => dateStr.startsWith(`${currentYear}`))
-        daysTaken += datesInCurrentYear.length
-      }
-    })
-  }
-  const remainingQuota = 12 - daysTaken
-  const progressPercent = Math.round((daysTaken / 12) * 100)
+  // 4. Calculate Quota for Right Sidebar using new Buckets Action
+  const quotaOverview = await getLeaveQuotaOverviewAction(employee.id);
+  const remainingQuota = quotaOverview?.totalRemaining || 0;
+  const progressPercent = quotaOverview?.progressPercent || 0;
 
   // 5. Recent History for Right Sidebar
   const { data: recentLeaves } = await supabase

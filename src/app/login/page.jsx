@@ -12,6 +12,20 @@ export default function LoginPage() {
 
   const supabase = createClient()
 
+  const getURL = () => {
+    let url =
+      process?.env?.NEXT_PUBLIC_SITE_URL ?? // If they set NEXT_PUBLIC_SITE_URL, use it
+      process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel
+      window.location.origin ?? // Fallback to browser origin
+      'http://localhost:3000';
+      
+    // Make sure to include `https://` when not localhost.
+    url = url.startsWith('http') ? url : `https://${url}`;
+    // Make sure to not include a trailing `/`.
+    url = url.endsWith('/') ? url.slice(0, -1) : url;
+    return url;
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true)
     setError('')
@@ -19,7 +33,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getURL()}/auth/callback`,
       },
     })
 

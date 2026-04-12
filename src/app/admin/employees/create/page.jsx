@@ -28,12 +28,13 @@ export default async function CreateEmployeePage() {
     const name = formData.get('name')
     const email = formData.get('email')
     const role = formData.get('role')
+    const start_date = formData.get('start_date') || null
 
     const supabaseServer = await createClient()
 
     const { error } = await supabaseServer
       .from('employees')
-      .insert({ name, email, role })
+      .insert({ name, email, role, start_date })
 
     if (error) {
       console.error('Error creating employee:', error)
@@ -89,6 +90,14 @@ export default async function CreateEmployeePage() {
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Work Date (Optionally)</Label>
+              <Input id="start_date" name="start_date" type="date" />
+              <p className="text-xs text-muted-foreground">
+                The date this employee officially started working.
+              </p>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">

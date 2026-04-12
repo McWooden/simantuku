@@ -12,9 +12,16 @@ export async function GET(request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Begin Auto-Link Logic
+      // Auto-sync public profile log so Unlinked Logins works
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+          role: 'user'
+        }, { onConflict: 'id' })
+
+        // Begin Auto-Link Logic
         const { data: existingEmployee } = await supabase
           .from('employees')
           .select('id')

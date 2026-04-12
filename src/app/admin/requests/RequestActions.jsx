@@ -2,26 +2,20 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { updateLeaveStatusAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
 import { Check, X } from 'lucide-react'
 
 export function RequestActions({ requestId }) {
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
 
   const handleUpdate = async (status) => {
     setLoading(true)
-    const { error } = await supabase
-      .from('cuti')
-      .update({ status })
-      .eq('id', requestId)
+    const res = await updateLeaveStatusAction(requestId, status)
 
-    if (error) {
-      alert(error.message)
-    } else {
-      router.refresh()
+    if (res?.error) {
+      alert(res.error)
     }
     setLoading(false)
   }
