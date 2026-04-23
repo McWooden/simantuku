@@ -18,6 +18,7 @@ export async function GET(request) {
         await supabase.from('profiles').upsert({
           id: user.id,
           username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+          email: user.email,
           role: 'user'
         }, { onConflict: 'id' })
 

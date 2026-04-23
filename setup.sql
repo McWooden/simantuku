@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   username TEXT NOT NULL,
+  email TEXT,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user'))
 );
 
@@ -22,6 +23,9 @@ CREATE TABLE IF NOT EXISTS employees (
   email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
   start_date DATE,
+  position TEXT,
+  unit TEXT,
+  nip TEXT UNIQUE,
   auth_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   UNIQUE(auth_id)
 );

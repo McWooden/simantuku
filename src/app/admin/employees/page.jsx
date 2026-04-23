@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getLeaveQuotaOverviewAction } from '@/app/actions/leaveActions'
 import Link from 'next/link'
 import { 
   Table, 
@@ -34,35 +35,35 @@ export default async function AdminUsersPage() {
     .select('*')
     .order('created_at', { ascending: false })
 
-  const { data: allLeaves } = await supabase
-    .from('cuti')
-    .select('userid, dates')
-    .eq('category', 'Tahunan')
-    .eq('status', 'acc')
-
-  // Calculate quota for each user
-  const userStats = allEmployees.map(u => {
-    const userLeaves = allLeaves?.filter(l => l.employee_id === u.id) || []
-    const daysUsed = userLeaves.reduce((acc, curr) => acc + curr.dates.length, 0)
-    return {
-      ...u,
-      daysUsed,
-      remaining: 12 - daysUsed
-    }
-  })
+  // Calculate true quota for each user using the advanced bucket system
+  const userStats = await Promise.all(
+    allEmployees.map(async (u) => {
+      let overview;
+      try {
+        overview = await getLeaveQuotaOverviewAction(u.id);
+      } catch (e) {
+        overview = { used: 0, totalRemaining: 0 };
+      }
+      return {
+        ...u,
+        daysUsed: overview.used,
+        remaining: overview.totalRemaining,
+      }
+    })
+  )
 
   return (
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Employee Directory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Direktori Pegawai</h1>
           <p className="text-muted-foreground">
-            View all registered employees and their leave balances.
+            Lihat daftar semua pegawai dan saldo cuti mereka.
           </p>
         </div>
         <Button asChild>
           <Link href="/admin/employees/create">
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
+            <Plus className="mr-2 h-4 w-4" /> Tambah Pegawai
           </Link>
         </Button>
       </div>
@@ -71,11 +72,12 @@ export default async function AdminUsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Nama</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead>Annual Leave Used</TableHead>
-              <TableHead>Remaining Balance</TableHead>
+              <TableHead>Peran</TableHead>
+              <TableHead>Bergabung</TableHead>
+              <TableHead>Cuti Tahunan Terpakai</TableHead>
+              <TableHead>Sisa Kuota</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,18 +98,18 @@ export default async function AdminUsersPage() {
                   <TableCell>
                     {new Date(u.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{u.daysUsed} days</TableCell>
+                  <TableCell>{u.daysUsed} hari</TableCell>
                   <TableCell>
                     <span className={u.remaining < 3 ? "text-red-500 font-bold" : ""}>
-                      {u.remaining} days
+                      {u.remaining} hari
                     </span>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No users found.
+                <TableCell colSpan={6} className="h-24 text-center">
+                  Tidak ada pegawai ditemukan.
                 </TableCell>
               </TableRow>
             )}

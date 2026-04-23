@@ -70,29 +70,29 @@ export function Sidebar({ role, employee, avatarUrl }) {
 
         <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
           <div className="mb-6">
-            <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">OVERVIEW</p>
+            <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">IKHTISAR</p>
             <nav className="space-y-1.5">
               <NavLink href="/dashboard" icon={LayoutDashboard} exact={true} onClick={() => setIsOpen(false)}>
                 Dashboard
               </NavLink>
               <NavLink href="/dashboard/form" icon={CheckSquare} onClick={() => setIsOpen(false)}>
-                Submit
+                Ajukan Cuti
               </NavLink>
             </nav>
           </div>
 
           {role === 'admin' && (
             <div className="mb-6">
-              <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">ADMINISTRATION</p>
+              <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">ADMINISTRASI</p>
               <nav className="space-y-1.5">
                 <NavLink href="/admin" icon={LayoutDashboard} exact={true} onClick={() => setIsOpen(false)}>
-                  Admin Center
+                  Pusat Admin
                 </NavLink>
                 <NavLink href="/admin/requests" icon={Inbox} onClick={() => setIsOpen(false)}>
-                  Leave Inbox
+                  Kotak Masuk Cuti
                 </NavLink>
                 <NavLink href="/admin/employees" icon={Users} onClick={() => setIsOpen(false)}>
-                  Employee
+                  Pegawai
                 </NavLink>
               </nav>
             </div>

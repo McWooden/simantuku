@@ -59,10 +59,10 @@ export default async function DashboardPage() {
             {format(new Date(), "EEEE, d MMMM yyyy", { locale: id })}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-            Welcome back, {employee.name}!
+            Selamat datang kembali, {employee.name}!
           </h1>
           <p className="text-primary-foreground/90 max-w-md">
-            Here is an overview of your current leave balances and recent requests.
+            Berikut ini adalah ikhtisar sisa cuti Anda dan permintaan cuti terbaru.
           </p>
         </div>
         {/* Abstract shapes for background */}
@@ -76,8 +76,8 @@ export default async function DashboardPage() {
             <Clock className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h4 className="font-bold">Pending Request in Progress</h4>
-            <p className="text-sm opacity-90">You currently have a request awaiting approval. You won't be able to submit a new one until this is resolved or cancelled.</p>
+            <h4 className="font-bold">Permintaan Menunggu Proses</h4>
+            <p className="text-sm opacity-90">Anda saat ini memiliki permintaan yang menunggu persetujuan. Anda tidak dapat mengirim permintaan baru sampai yang ini diselesaikan atau dibatalkan.</p>
           </div>
         </div>
       )}
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
           <CardContent className="p-6 relative">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Annual Leave Quota</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Kuota Cuti Tahunan</p>
                 <div className="flex items-end gap-2">
                   <span className="text-5xl font-black text-primary tracking-tighter">
                     {remainingQuota}
@@ -112,22 +112,22 @@ export default async function DashboardPage() {
             </div>
 
             <div className="mt-6 space-y-3">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Quota Breakdown</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Rincian Kuota</p>
               {buckets.slice().reverse().map((bucket) => (
                 <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
                   <div className="flex flex-col">
                     <span className="font-semibold text-slate-700">
-                      Year {bucket.year} 
+                      Tahun {bucket.year} 
                       {bucket.year === currentYear ? (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Current</span>
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
                       ) : bucket.year === currentYear - 1 ? (
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Last Year</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Tahun Lalu</span>
                       ) : bucket.year === currentYear - 2 ? (
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Years Ago</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
                       ) : null}
                     </span>
                     {bucket.expires_at && (
-                      <span className="text-[10px] text-muted-foreground">Expires {format(new Date(bucket.expires_at), 'MMM d, yyyy')}</span>
+                      <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
                     )}
                   </div>
                   <div className="text-right">
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
             </div>
 
             <p className="text-[10px] text-muted-foreground mt-4 italic">
-              * Quota prioritizes using the oldest expiring days first.
+              * Kuota diprioritaskan menggunakan hari yang kedaluwarsa lebih awal.
             </p>
           </CardContent>
         </Card>
@@ -149,14 +149,14 @@ export default async function DashboardPage() {
           <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-violet-100 rounded-full blur-2xl transition-transform group-hover:scale-125" />
           <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6 relative z-10">
             <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h3 className="text-xl font-bold">Planning time off?</h3>
+              <h3 className="text-xl font-bold">Berencana mengambil cuti?</h3>
               <p className="text-sm text-muted-foreground">
-                Submit a new leave request. Our system will automatically process and notify your administrators.
+                Ajukan permintaan cuti baru. Sistem kami akan memproses secara otomatis dan memberi tahu administrator Anda.
               </p>
             </div>
             <Button size="lg" className="rounded-full shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] transition-all px-8" asChild>
               <Link href="/dashboard/form">
-                <PlusCircle className="mr-2 h-5 w-5" /> Request Leave
+                <PlusCircle className="mr-2 h-5 w-5" /> Ajukan Cuti
               </Link>
             </Button>
           </CardContent>
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Recent Requests</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Permintaan Terbaru</h2>
 
         <div className="flex flex-col gap-3">
           {leaveHistory && leaveHistory.length > 0 ? (
@@ -240,12 +240,12 @@ export default async function DashboardPage() {
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <CalendarDays className="w-8 h-8 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">No requests yet</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Belum ada permintaan</h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                  You haven't submitted any leave requests. Your history will appear here once you do.
+                  Anda belum mengajukan permintaan cuti apa pun. Riwayat Anda akan muncul di sini nanti.
                 </p>
                 <Button variant="outline" asChild>
-                  <Link href="/dashboard/form">Submit your first request</Link>
+                  <Link href="/dashboard/form">Ajukan permintaan pertama Anda</Link>
                 </Button>
               </CardContent>
             </Card>

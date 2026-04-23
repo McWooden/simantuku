@@ -153,24 +153,23 @@ export default function LeaveFormPage() {
         <div className={`transition-all duration-500 w-full ${showPreview ? 'lg:w-[45%]' : 'lg:max-w-3xl lg:mx-auto'}`}>
           <div className="mb-6 flex flex-row items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Request Leave</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Ajukan Cuti</h1>
               <p className="text-slate-500 mt-1 flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                Complete the steps to submit your form
+                Selesaikan langkah-langkah untuk mengirim formulir Anda
               </p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden lg:flex gap-2 shrink-0 ml-4 rounded-full shadow-sm">
-              {showPreview ? <><EyeOff className="w-4 h-4" /> Hide Preview</> : <><Eye className="w-4 h-4" /> Show Preview</>}
+              {showPreview ? <><EyeOff className="w-4 h-4" /> Sembunyikan Pratinjau</> : <><Eye className="w-4 h-4" /> Tampilkan Pratinjau</>}
             </Button>
           </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {hasPending && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl flex gap-3 text-amber-800 shadow-sm mb-6">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-bold text-base">Access Restricted</p>
-                  <p className="mt-1">You currently have a <strong>Pending</strong> request. You cannot submit a new one until your current request is approved, rejected, or cancelled.</p>
+                  <p className="font-bold text-base">Akses Dibatasi</p>
+                  <p className="mt-1">Anda saat ini memiliki permintaan yang <strong>Menunggu</strong>. Anda tidak dapat mengirim permintaan baru sampai permintaan saat ini disetujui, ditolak, atau dibatalkan.</p>
                 </div>
               </div>
             )}
@@ -181,13 +180,13 @@ export default function LeaveFormPage() {
               <Card className="shadow-sm border-slate-200 overflow-hidden">
                 <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                  <CardTitle className="text-lg">Leave Category</CardTitle>
+                  <CardTitle className="text-lg">Kategori Cuti</CardTitle>
                 </div>
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <Select value={category} onValueChange={handleCategoryChange}>
                       <SelectTrigger id="category" className="h-11">
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder="Pilih kategori" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
@@ -207,11 +206,11 @@ export default function LeaveFormPage() {
                 <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                    <CardTitle className="text-lg">Select Dates</CardTitle>
+                    <CardTitle className="text-lg">Pilih Tanggal</CardTitle>
                   </div>
                   {dates.length > 0 && (
                     <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full animate-in fade-in zoom-in">
-                      {dates.length} Day{dates.length > 1 ? 's' : ''} Selected
+                      {dates.length} Hari Terpilih
                     </span>
                   )}
                 </div>
@@ -222,12 +221,29 @@ export default function LeaveFormPage() {
                       selected={dates}
                       onSelect={setDates}
                       className="rounded-md"
+                      modifiers={{
+                        weekend: (date) => date.getDay() === 0 || date.getDay() === 6
+                      }}
+                      modifiersClassNames={{
+                        weekend: "text-amber-600 bg-amber-50/60 font-semibold hover:bg-amber-100 hover:text-amber-700 data-[selected-single=true]:bg-amber-500 data-[selected-single=true]:text-white"
+                      }}
                     />
                   </div>
                   {dates.length === 0 && (
                     <p className="text-center text-sm text-slate-500 mt-4 italic">
-                      Please select at least one date from the calendar.
+                      Harap pilih setidaknya satu tanggal dari kalender.
                     </p>
+                  )}
+                  {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
+                        <p className="opacity-90">
+                          Anda memilih tanggal pada hari Sabtu atau Minggu. Hari kerja biasanya hanya Senin hingga Jumat.
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -236,7 +252,7 @@ export default function LeaveFormPage() {
               <Card className="shadow-sm border-slate-200 overflow-hidden">
                 <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                  <CardTitle className="text-lg">Additional Notes</CardTitle>
+                  <CardTitle className="text-lg">Catatan Tambahan</CardTitle>
                 </div>
                 <CardContent className="p-6">
                   <NoteInput value={note} onChange={setNote} />
@@ -247,10 +263,10 @@ export default function LeaveFormPage() {
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-4">
                 <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
-                  Cancel
+                  Batal
                 </Button>
                 <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || hasPending || checkingPending}>
-                  {loading ? 'Submitting...' : hasPending ? 'Request Blocked' : 'Submit Request'}
+                  {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
                 </Button>
               </div>
 
@@ -262,11 +278,11 @@ export default function LeaveFormPage() {
         {showPreview && (
           <div className="w-full lg:w-[55%] sticky top-6 animate-in slide-in-from-right-8 duration-500">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-800">Live Document</h2>
+              <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
                 <DownloadPdfButton employeeName={employeeName} leave={{ category, dates, note }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
-                  Close Preview
+                  Tutup Pratinjau
                 </Button>
               </div>
             </div>
@@ -283,7 +299,7 @@ export default function LeaveFormPage() {
               ) : (
                 <div className="flex flex-col items-center text-slate-400 gap-3">
                   <div className="w-8 h-8 border-4 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" />
-                  <p className="text-sm font-medium">Generating document via pdf-lib...</p>
+                  <p className="text-sm font-medium">Membuat dokumen via pdf-lib...</p>
                 </div>
               )}
             </div>
@@ -293,10 +309,10 @@ export default function LeaveFormPage() {
               <div className="flex justify-between items-center p-3 bg-slate-200/50">
                 <h3 className="font-semibold text-sm text-slate-700 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                  Dev Coordinate Tuner
+                  Penyesuai Koordinat Dev
                 </h3>
                 <Button size="sm" variant="outline" className="h-7 text-xs bg-white" onClick={() => setDevMode(!devMode)}>
-                  {devMode ? 'Close Panel' : 'Open Tuner'}
+                  {devMode ? 'Tutup Panel' : 'Buka Penyesuai'}
                 </Button>
               </div>
               {devMode && (
@@ -322,9 +338,9 @@ export default function LeaveFormPage() {
                   <div className="col-span-full pt-2">
                     <Button variant="secondary" size="sm" className="w-full text-xs h-7" onClick={() => {
                       console.log("Exported Coords:", JSON.stringify(customCoords, null, 2))
-                      alert("Coordinates printed to console for copy-pasting!")
+                      alert("Koordinat dicetak ke konsol untuk di-copy-paste!")
                     }}>
-                      Log Current Coords to Console
+                      Log Koordinat ke Konsol
                     </Button>
                   </div>
                 </div>
@@ -342,16 +358,16 @@ export default function LeaveFormPage() {
 const NoteInput = memo(function NoteInput({ value, onChange }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="note">Notes / Reason (Optional)</Label>
+      <Label htmlFor="note">Catatan / Alasan (Opsional)</Label>
       <Textarea
         id="note"
-        placeholder="Briefly explain the reason for your leave..."
+        placeholder="Jelaskan secara singkat alasan cuti Anda..."
         defaultValue={value}
         maxLength={247}
         onBlur={(e) => onChange(e.target.value)}
       />
       <p className="text-[10px] text-muted-foreground italic">
-        Tip: Notes are saved when you finish typing or click away.
+        Tip: Catatan disimpan ketika Anda selesai mengetik atau mengklik di luar area teks.
       </p>
     </div>
   )

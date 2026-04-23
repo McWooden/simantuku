@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 
@@ -34,13 +34,13 @@ export default async function AdminUnlinkedLoginsPage() {
   // but if we only have access to Public `profiles` table:
   const { data: authProfiles } = await supabase
     .from('profiles')
-    .select('id, username, created_at')
+    .select('id, username, email, created_at')
     .order('created_at', { ascending: false })
 
   const { data: employees } = await supabase
     .from('employees')
     .select('id, name, email, auth_id')
-  
+
   // Find auth profiles that are NOT linked in employees
   const linkedAuthIds = employees.filter(e => e.auth_id).map(e => e.auth_id)
   const unlinkedProfiles = authProfiles?.filter(p => !linkedAuthIds.includes(p.id)) || []
@@ -69,14 +69,14 @@ export default async function AdminUnlinkedLoginsPage() {
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Unlinked Logins</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Login Belum Tertaut</h1>
           <p className="text-muted-foreground">
-            Users who logged in via Google but aren't currently mapped to an Official Employee Record.
+            Pengguna yang masuk melalui Google tetapi belum dipetakan ke Rekam Data Pegawai Resmi.
           </p>
         </div>
         <Button asChild>
           <Link href="/admin/employees/create">
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
+            <Plus className="mr-2 h-4 w-4" /> Tambah Pegawai
           </Link>
         </Button>
       </div>
@@ -85,9 +85,10 @@ export default async function AdminUnlinkedLoginsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Google Account / Name</TableHead>
-              <TableHead>Login Date</TableHead>
-              <TableHead>Link to Employee Profile</TableHead>
+              <TableHead>Akun Google / Nama</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Tanggal Login</TableHead>
+              <TableHead>Tautkan ke Profil Pegawai</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,31 +96,39 @@ export default async function AdminUnlinkedLoginsPage() {
               unlinkedProfiles.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.username}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.email || 'N/A'}</TableCell>
                   <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <form action={linkAccount} className="flex gap-2 items-center">
-                      <input type="hidden" name="profileId" value={p.id} />
-                      <select 
-                        name="employeeId" 
-                        required 
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      >
-                        <option value="">Select Employee...</option>
-                        {employees.map(emp => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.name} ({emp.email}) {emp.auth_id ? '- (Reassign)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <Button type="submit" size="sm">Link</Button>
-                    </form>
+                    <div className="flex flex-col lg:flex-row gap-2 items-center">
+                      <form action={linkAccount} className="flex gap-2 items-center w-full">
+                        <input type="hidden" name="profileId" value={p.id} />
+                        <select
+                          name="employeeId"
+                          required
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          <option value="">Pilih Pegawai...</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.name} ({emp.email}) {emp.auth_id ? '- (Tugaskan Ulang)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <Button type="submit" size="sm">Tautkan</Button>
+                      </form>
+                      <Button asChild size="sm" variant="outline" className="border-dashed whitespace-nowrap shrink-0">
+                        <Link href={`/admin/employees/create?email=${encodeURIComponent(p.email || '')}&name=${encodeURIComponent(p.username || '')}`}>
+                          <Plus className="h-3 w-3 mr-1" /> Buat Baru
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
-                  No unlinked logins found.
+                <TableCell colSpan={4} className="h-24 text-center">
+                  Tidak ada login yang belum tertaut.
                 </TableCell>
               </TableRow>
             )}
