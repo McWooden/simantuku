@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import { submitLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Clock } from 'lucide-react'
@@ -18,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { memo } from 'react'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { generateLeavePDF } from '@/lib/pdfGenerator'
 import { Eye, EyeOff } from 'lucide-react'
@@ -134,64 +132,47 @@ export default function LeaveFormPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+    <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-        {showPreview && (
-          <Card className="w-full lg:w-[55%] h-[800px] flex flex-col sticky top-6">
-            <CardHeader className="py-3 border-b border-slate-100 flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-medium">Live Document Preview</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
-                Close Preview
-              </Button>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 bg-slate-100 relative">
-              {pdfUrl ? (
-                <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0`}
-                  className="w-full h-full border-none rounded-b-xl"
-                  title="PDF Preview"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <p>Generating preview...</p>
+        {/* Left Form Column */}
+        <div className={`transition-all duration-500 w-full ${showPreview ? 'lg:w-[45%]' : 'lg:max-w-3xl lg:mx-auto'}`}>
+          <div className="mb-6 flex flex-row items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Request Leave</h1>
+              <p className="text-slate-500 mt-1 flex items-center gap-2">
+                <Clock className="w-4 h-4" /> 
+                Complete the steps to submit your form
+              </p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden lg:flex gap-2 shrink-0 ml-4 rounded-full shadow-sm">
+              {showPreview ? <><EyeOff className="w-4 h-4" /> Hide Preview</> : <><Eye className="w-4 h-4" /> Show Preview</>}
+            </Button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {hasPending && (
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl flex gap-3 text-amber-800 shadow-sm mb-6">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold text-base">Access Restricted</p>
+                  <p className="mt-1">You currently have a <strong>Pending</strong> request. You cannot submit a new one until your current request is approved, rejected, or cancelled.</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className={`transition-all duration-300 w-full ${showPreview ? 'lg:w-[45%]' : 'lg:max-w-2xl lg:mx-auto'}`}>
-          <form onSubmit={handleSubmit}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">Request Leave</CardTitle>
-                <CardDescription>
-                  Submit a new leave request. Please select all the individual dates you plan to take off.
-                </CardDescription>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden lg:flex gap-2 shrink-0 ml-4">
-                {showPreview ? <><EyeOff className="w-4 h-4" /> Hide Preview</> : <><Eye className="w-4 h-4" /> Show Preview</>}
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {hasPending && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-amber-800 mb-6">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-bold">Access Restricted</p>
-                    <p>You currently have a **Pending** request. You cannot submit a new one until your current request is approved, rejected, or cancelled.</p>
-                  </div>
+            )}
+
+            <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+              
+              {/* Step 1: Category */}
+              <Card className="shadow-sm border-slate-200 overflow-hidden">
+                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                  <CardTitle className="text-lg">Leave Category</CardTitle>
                 </div>
-              )}
-
-              <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Leave Category</Label>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
                     <Select value={category} onValueChange={handleCategoryChange}>
-                      <SelectTrigger id="category">
+                      <SelectTrigger id="category" className="h-11">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -203,24 +184,25 @@ export default function LeaveFormPage() {
                         <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
                       </SelectContent>
                     </Select>
-                    {category ? (
-                      <div className="mt-4 p-3 bg-white rounded-md border border-dashed flex flex-col sm:flex-row items-center gap-4 justify-between">
-                        <div className="text-sm text-muted-foreground italic flex-1">
-                          View or download your filled template.
-                        </div>
-                        <DownloadPdfButton employeeName={employeeName} leave={{ category, dates, note }} />
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        * Selecting a category will allow you to generate the required PDF template.
-                      </p>
-                    )}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <Label>Select Dates</Label>
-                  <div className="border rounded-md p-2 flex justify-center">
+              {/* Step 2: Dates */}
+              <Card className="shadow-sm border-slate-200 overflow-hidden">
+                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                    <CardTitle className="text-lg">Select Dates</CardTitle>
+                  </div>
+                  {dates.length > 0 && (
+                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full animate-in fade-in zoom-in">
+                      {dates.length} Day{dates.length > 1 ? 's' : ''} Selected
+                    </span>
+                  )}
+                </div>
+                <CardContent className="p-6">
+                  <div className="flex justify-center bg-slate-50/50 rounded-xl border p-2">
                     <Calendar
                       mode="multiple"
                       selected={dates}
@@ -228,26 +210,71 @@ export default function LeaveFormPage() {
                       className="rounded-md"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    You have selected {dates.length} day(s).
-                  </p>
+                  {dates.length === 0 && (
+                    <p className="text-center text-sm text-slate-500 mt-4 italic">
+                      Please select at least one date from the calendar.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Step 3: Notes */}
+              <Card className="shadow-sm border-slate-200 overflow-hidden">
+                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                  <CardTitle className="text-lg">Additional Notes</CardTitle>
                 </div>
+                <CardContent className="p-6">
+                  <NoteInput value={note} onChange={setNote} />
+                  {error && <p className="text-sm text-destructive font-medium mt-4 bg-destructive/10 p-3 rounded-md">{error}</p>}
+                </CardContent>
+              </Card>
 
-                <NoteInput value={note} onChange={setNote} />
-
-                {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || hasPending || checkingPending}>
+                  {loading ? 'Submitting...' : hasPending ? 'Request Blocked' : 'Submit Request'}
+                </Button>
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading || hasPending || checkingPending}>
-                {loading ? 'Submitting...' : hasPending ? 'Request Blocked' : 'Submit Request'}
-              </Button>
-            </CardFooter>
+
+            </div>
           </form>
-        </Card>
+        </div>
+
+        {/* Right Preview Column */}
+        {showPreview && (
+          <div className="w-full lg:w-[55%] sticky top-6 animate-in slide-in-from-right-8 duration-500">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800">Live Document</h2>
+              <div className="flex items-center gap-2">
+                <DownloadPdfButton employeeName={employeeName} leave={{ category, dates, note }} />
+                <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
+                  Close Preview
+                </Button>
+              </div>
+            </div>
+            
+            <div className="relative bg-[#525659] h-[85vh] rounded-xl overflow-hidden shadow-2xl ring-1 ring-slate-900/10 flex items-center justify-center p-2 md:p-8">
+              {pdfUrl ? (
+                <div className="w-full h-full bg-white shadow-xl max-w-[800px] mx-auto animate-in fade-in duration-300">
+                  <iframe
+                    src={`${pdfUrl}#toolbar=0&navpanes=0`}
+                    className="w-full h-full border-none"
+                    title="PDF Preview"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-slate-400 gap-3">
+                  <div className="w-8 h-8 border-4 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" />
+                  <p className="text-sm font-medium">Generating document via pdf-lib...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

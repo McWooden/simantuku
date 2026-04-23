@@ -1,9 +1,13 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 
 // Coordinate mapping - adjust these for accurate placement
 export const COORDS = {
   name: { x: 116, y: 723 },
-  dates: { x: 100, y: 660 },
+  daysCount: { x: 79, y: 547 },
+  startDate: { x: 317, y: 547 },
+  endDate: { x: 478, y: 547 },
   note: { x: 26, y: 598, maxWidth: 570, lineHeight: 10 },
   catTahunan: { x: 266, y: 661 },
   catBesar: { x: 563, y: 661 },
@@ -49,15 +53,28 @@ export async function generateLeavePDF({ name, category, dates, note, customCoor
   }
 
   // Format dates 
-  let datesStr = ''
   if (dates && dates.length > 0) {
-    if (dates.length === 1) {
-      datesStr = `1 day selected`
-    } else {
-      datesStr = `${dates.length} days selected`
+    // Robustly parse and sort dates whether they are string 'YYYY-MM-DD' or React Date objects
+    const sortedDates = [...dates]
+      .map(d => new Date(d))
+      .sort((a, b) => a.getTime() - b.getTime())
+
+    const countText = `${sortedDates.length} hari`
+
+    if (currentCoords.daysCount) {
+      firstPage.drawText(countText, { x: currentCoords.daysCount.x, y: currentCoords.daysCount.y, ...drawOpts })
+    }
+
+    if (currentCoords.startDate) {
+      const startText = format(sortedDates[0], 'd MMMM yyyy', { locale: id })
+      firstPage.drawText(startText, { x: currentCoords.startDate.x, y: currentCoords.startDate.y, ...drawOpts })
+    }
+
+    if (currentCoords.endDate) {
+      const endText = format(sortedDates[sortedDates.length - 1], 'd MMMM yyyy', { locale: id })
+      firstPage.drawText(endText, { x: currentCoords.endDate.x, y: currentCoords.endDate.y, ...drawOpts })
     }
   }
-  if (currentCoords.dates) firstPage.drawText(datesStr, { x: currentCoords.dates.x, y: currentCoords.dates.y, ...drawOpts })
 
   if (note && currentCoords.note) {
     firstPage.drawText(note, {
