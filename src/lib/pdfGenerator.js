@@ -14,13 +14,16 @@ export const COORDS = {
   catSakit: { x: 266, y: 647 },
   catMelahirkan: { x: 563, y: 647 },
   catPenting: { x: 266, y: 634 },
-  catLuarTanggungan: { x: 563, y: 634 }
+  catLuarTanggungan: { x: 563, y: 634 },
+  sisaN: { x: 118, y: 455 },
+  sisaN1: { x: 118, y: 469 },
+  sisaN2: { x: 118, y: 482 }
 }
 
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ name, category, dates, note, customCoords }) {
+export async function generateLeavePDF({ name, category, dates, note, quotas, customCoords }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -84,6 +87,24 @@ export async function generateLeavePDF({ name, category, dates, note, customCoor
       lineHeight: currentCoords.note.lineHeight || 14,
       ...drawOpts
     })
+  }
+
+  // Draw Quotas
+  if (quotas) {
+    const drawCentered = (text, coord) => {
+      const textWidth = timesRomanFont.widthOfTextAtSize(text, drawOpts.size)
+      firstPage.drawText(text, { ...drawOpts, x: coord.x - textWidth / 2, y: coord.y })
+    }
+
+    if (quotas.sisaN !== undefined && currentCoords.sisaN) {
+      drawCentered(String(quotas.sisaN), currentCoords.sisaN)
+    }
+    if (quotas.sisaN1 !== undefined && currentCoords.sisaN1) {
+      drawCentered(String(quotas.sisaN1), currentCoords.sisaN1)
+    }
+    if (quotas.sisaN2 !== undefined && currentCoords.sisaN2) {
+      drawCentered(String(quotas.sisaN2), currentCoords.sisaN2)
+    }
   }
 
   // Serialize the PDFDocument to bytes (a Uint8Array)

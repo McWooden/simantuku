@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
-import { generateLeavePDF } from '@/lib/pdfGenerator'
+import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function LeaveFormPage() {
@@ -29,6 +29,9 @@ export default function LeaveFormPage() {
   const [hasPending, setHasPending] = useState(false)
   const [employeeName, setEmployeeName] = useState('')
   const [error, setError] = useState('')
+  const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
+  const [customCoords, setCustomCoords] = useState(COORDS)
+  const [devMode, setDevMode] = useState(false)
 
   // Check for pending requests on mount
   useEffect(() => {
@@ -43,6 +46,15 @@ export default function LeaveFormPage() {
             setEmployeeName(employee.name)
             const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
             setHasPending(count > 0)
+
+            const { getLeaveQuotaOverviewAction } = await import('@/app/actions/leaveActions')
+            const overview = await getLeaveQuotaOverviewAction(employee.id)
+            const currentYear = new Date().getFullYear()
+            const b = overview.buckets || []
+            const sisaN = b.find(x => x.year === currentYear)?.remaining || 0
+            const sisaN1 = b.find(x => x.year === currentYear - 1)?.remaining || 0
+            const sisaN2 = b.find(x => x.year === currentYear - 2)?.remaining || 0
+            setQuotas({ sisaN, sisaN1, sisaN2 })
           }
         }
       } catch (e) {
@@ -69,7 +81,9 @@ export default function LeaveFormPage() {
           name: employeeName,
           category,
           dates,
-          note
+          note,
+          quotas,
+          customCoords
         })
         if (active) {
           const url = URL.createObjectURL(blob)
@@ -84,7 +98,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeName, category, dates, note])
+  }, [employeeName, category, dates, note, quotas, customCoords])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -141,7 +155,7 @@ export default function LeaveFormPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Request Leave</h1>
               <p className="text-slate-500 mt-1 flex items-center gap-2">
-                <Clock className="w-4 h-4" /> 
+                <Clock className="w-4 h-4" />
                 Complete the steps to submit your form
               </p>
             </div>
@@ -162,7 +176,7 @@ export default function LeaveFormPage() {
             )}
 
             <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-              
+
               {/* Step 1: Category */}
               <Card className="shadow-sm border-slate-200 overflow-hidden">
                 <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
@@ -256,8 +270,8 @@ export default function LeaveFormPage() {
                 </Button>
               </div>
             </div>
-            
-            <div className="relative bg-[#525659] h-[85vh] rounded-xl overflow-hidden shadow-2xl ring-1 ring-slate-900/10 flex items-center justify-center p-2 md:p-8">
+
+            <div className="relative bg-[#525659] h-[75vh] rounded overflow-hidden shadow-2xl ring-1 ring-slate-900/10 flex items-center justify-center">
               {pdfUrl ? (
                 <div className="w-full h-full bg-white shadow-xl max-w-[800px] mx-auto animate-in fade-in duration-300">
                   <iframe
@@ -270,6 +284,49 @@ export default function LeaveFormPage() {
                 <div className="flex flex-col items-center text-slate-400 gap-3">
                   <div className="w-8 h-8 border-4 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" />
                   <p className="text-sm font-medium">Generating document via pdf-lib...</p>
+                </div>
+              )}
+            </div>
+
+            {/* Dev Coordinate Tuner */}
+            <div className="mt-4 bg-slate-100 rounded-xl overflow-hidden ring-1 ring-slate-200">
+              <div className="flex justify-between items-center p-3 bg-slate-200/50">
+                <h3 className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  Dev Coordinate Tuner
+                </h3>
+                <Button size="sm" variant="outline" className="h-7 text-xs bg-white" onClick={() => setDevMode(!devMode)}>
+                  {devMode ? 'Close Panel' : 'Open Tuner'}
+                </Button>
+              </div>
+              {devMode && (
+                <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto max-h-[30vh]">
+                  {Object.entries(customCoords).map(([key, val]) => {
+                    const isFocusItems = ['sisaN', 'sisaN1', 'sisaN2'].includes(key);
+                    return (
+                      <div key={key} className={`p-2 border rounded-lg bg-white shadow-sm transition-all ${isFocusItems ? 'ring-1 ring-primary/30 border-primary/20' : ''}`}>
+                        <div className="font-semibold text-xs mb-1 text-slate-600 truncate" title={key}>{key}</div>
+                        <div className="flex flex-col gap-1 text-[10px]">
+                          <label className="flex items-center gap-2">
+                            <span className="w-3 text-slate-400 font-medium">X</span>
+                            <Input type="number" className="h-6 text-xs px-1.5" value={val.x} onChange={e => setCustomCoords(prev => ({ ...prev, [key]: { ...prev[key], x: Number(e.target.value) } }))} />
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <span className="w-3 text-slate-400 font-medium">Y</span>
+                            <Input type="number" className="h-6 text-xs px-1.5" value={val.y} onChange={e => setCustomCoords(prev => ({ ...prev, [key]: { ...prev[key], y: Number(e.target.value) } }))} />
+                          </label>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div className="col-span-full pt-2">
+                    <Button variant="secondary" size="sm" className="w-full text-xs h-7" onClick={() => {
+                      console.log("Exported Coords:", JSON.stringify(customCoords, null, 2))
+                      alert("Coordinates printed to console for copy-pasting!")
+                    }}>
+                      Log Current Coords to Console
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
