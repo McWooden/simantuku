@@ -8,6 +8,7 @@ import { id } from 'date-fns/locale'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
 import { CalendarDays, PlusCircle, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import { CancelLeaveButton } from './CancelLeaveButton'
+import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -212,6 +213,13 @@ export default async function DashboardPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
+                      <DownloadPdfButton 
+                        employeeName={employee.name} 
+                        leave={leave} 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-muted-foreground hover:text-primary gap-1.5"
+                      />
                       {leave.status === 'pending' && (
                         <CancelLeaveButton leaveId={leave.id} />
                       )}
