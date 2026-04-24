@@ -75,12 +75,13 @@ export default async function CreateEmployeePage({ searchParams }) {
     let unit = formData.get('unit') || null
     if (unit === 'none') unit = null // handle 'none' option
     const nip = formData.get('nip') || null
+    const phone_number = formData.get('phone_number') || null
 
     const supabaseServer = await createClient()
 
     const { error } = await supabaseServer
       .from('employees')
-      .insert({ name, email, role, start_date, position, unit, nip })
+      .insert({ name, email, role, start_date, position, unit, nip, phone_number })
 
     if (error) {
       console.error('Error creating employee:', error)
@@ -170,6 +171,11 @@ export default async function CreateEmployeePage({ searchParams }) {
             <div className="space-y-2">
               <Label htmlFor="nip">nip (Opsional)</Label>
               <Input id="nip" name="nip" placeholder="Maksimal 18 karakter nip" maxLength={18} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone_number">Nomor Telepon (Opsional)</Label>
+              <Input id="phone_number" name="phone_number" type="tel" placeholder="Contoh: 08123456789" />
             </div>
 
             <div className="space-y-2">

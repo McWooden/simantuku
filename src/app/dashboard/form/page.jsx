@@ -28,6 +28,11 @@ export default function LeaveFormPage() {
   const [checkingPending, setCheckingPending] = useState(true)
   const [hasPending, setHasPending] = useState(false)
   const [employeeName, setEmployeeName] = useState('')
+  const [employeeNip, setEmployeeNip] = useState('')
+  const [employeeUnit, setEmployeeUnit] = useState('')
+  const [employeePosition, setEmployeePosition] = useState('')
+  const [employeePhone, setEmployeePhone] = useState('')
+  const [address, setAddress] = useState('')
   const [error, setError] = useState('')
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
   const [customCoords, setCustomCoords] = useState(COORDS)
@@ -41,9 +46,13 @@ export default function LeaveFormPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: employee } = await supabase.from('employees').select('id, name').eq('auth_id', user.id).single()
+          const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number').eq('auth_id', user.id).single()
           if (employee) {
             setEmployeeName(employee.name)
+            setEmployeeNip(employee.nip || '')
+            setEmployeeUnit(employee.unit || '')
+            setEmployeePosition(employee.position || '')
+            setEmployeePhone(employee.phone_number || '')
             const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
             setHasPending(count > 0)
 
@@ -79,6 +88,11 @@ export default function LeaveFormPage() {
       try {
         const blob = await generateLeavePDF({
           name: employeeName,
+          nip: employeeNip,
+          unit: employeeUnit,
+          position: employeePosition,
+          phone: employeePhone,
+          address,
           category,
           dates,
           note,
@@ -98,7 +112,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeName, category, dates, note, quotas, customCoords])
+  }, [employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, dates, note, quotas, customCoords])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -248,13 +262,23 @@ export default function LeaveFormPage() {
                 </CardContent>
               </Card>
 
-              {/* Step 3: Notes */}
+              {/* Step 3: Extra Info */}
               <Card className="shadow-sm border-slate-200 overflow-hidden">
                 <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                  <CardTitle className="text-lg">Catatan Tambahan</CardTitle>
+                  <CardTitle className="text-lg">Informasi Tambahan</CardTitle>
                 </div>
-                <CardContent className="p-6">
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Alamat Selama Menjalankan Cuti (Opsional)</Label>
+                    <Textarea 
+                      id="address" 
+                      placeholder="Contoh: Jl. Merdeka No. 123, RT 01/RW 02..." 
+                      value={address} 
+                      onChange={(e) => setAddress(e.target.value)} 
+                      maxLength={52}
+                    />
+                  </div>
                   <NoteInput value={note} onChange={setNote} />
                   {error && <p className="text-sm text-destructive font-medium mt-4 bg-destructive/10 p-3 rounded-md">{error}</p>}
                 </CardContent>

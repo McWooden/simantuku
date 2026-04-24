@@ -5,6 +5,11 @@ import { id } from 'date-fns/locale'
 // Coordinate mapping - adjust these for accurate placement
 export const COORDS = {
   name: { x: 116, y: 723 },
+  nip: { x: 454, y: 723 },
+  position: { x: 116, y: 710 },
+  unit: { x: 117, y: 697 },
+  phone: { x: 460, y: 420 },
+  address: { x: 28, y: 420 },
   daysCount: { x: 79, y: 547 },
   startDate: { x: 317, y: 547 },
   endDate: { x: 478, y: 547 },
@@ -23,7 +28,7 @@ export const COORDS = {
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ name, category, dates, note, quotas, customCoords }) {
+export async function generateLeavePDF({ name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -48,6 +53,16 @@ export async function generateLeavePDF({ name, category, dates, note, quotas, cu
 
   // Draw values at specific coordinates
   if (currentCoords.name) firstPage.drawText(name || '', { x: currentCoords.name.x, y: currentCoords.name.y, ...drawOpts })
+  if (nip && currentCoords.nip) firstPage.drawText(nip || '', { x: currentCoords.nip.x, y: currentCoords.nip.y, ...drawOpts })
+  if (position && currentCoords.position) firstPage.drawText(position || '', { x: currentCoords.position.x, y: currentCoords.position.y, ...drawOpts })
+  if (unit && currentCoords.unit) firstPage.drawText(unit || '', { x: currentCoords.unit.x, y: currentCoords.unit.y, ...drawOpts })
+  if (address && currentCoords.address) firstPage.drawText(address || '', { x: currentCoords.address.x, y: currentCoords.address.y, ...drawOpts })
+
+  // Centered fields
+  if (phone && currentCoords.phone) {
+    const textWidth = timesRomanFont.widthOfTextAtSize(phone, drawOpts.size)
+    firstPage.drawText(phone, { ...drawOpts, x: currentCoords.phone.x - textWidth / 2, y: currentCoords.phone.y })
+  }
 
   // Draw checkmark "V" for selected category
   const catKey = category ? `cat${category}` : null;

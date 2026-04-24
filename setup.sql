@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS employees (
   position TEXT,
   unit TEXT,
   nip TEXT UNIQUE,
+  phone_number TEXT,
   auth_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   UNIQUE(auth_id)
 );
