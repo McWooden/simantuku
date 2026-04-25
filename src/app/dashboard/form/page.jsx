@@ -304,7 +304,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                <DownloadPdfButton employeeName={employeeName} leave={{ category, dates, note }} />
+                <DownloadPdfButton pdfData={{ name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>
@@ -341,7 +341,9 @@ export default function LeaveFormPage() {
               </div>
               {devMode && (
                 <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto max-h-[30vh]">
-                  {Object.entries(customCoords).map(([key, val]) => {
+                  {Object.entries(customCoords)
+                    .filter(([key]) => !key.startsWith('cat'))
+                    .map(([key, val]) => {
                     const isFocusItems = ['sisaN', 'sisaN1', 'sisaN2'].includes(key);
                     return (
                       <div key={key} className={`p-2 border rounded-lg bg-white shadow-sm transition-all ${isFocusItems ? 'ring-1 ring-primary/30 border-primary/20' : ''}`}>

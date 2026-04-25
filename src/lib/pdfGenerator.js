@@ -4,25 +4,28 @@ import { id } from 'date-fns/locale'
 
 // Coordinate mapping - adjust these for accurate placement
 export const COORDS = {
-  name: { x: 116, y: 723 },
-  nip: { x: 454, y: 723 },
-  position: { x: 116, y: 710 },
-  unit: { x: 117, y: 697 },
-  phone: { x: 460, y: 420 },
-  address: { x: 28, y: 420 },
-  daysCount: { x: 79, y: 547 },
-  startDate: { x: 317, y: 547 },
-  endDate: { x: 478, y: 547 },
-  note: { x: 26, y: 598, maxWidth: 570, lineHeight: 10 },
-  catTahunan: { x: 266, y: 661 },
-  catBesar: { x: 563, y: 661 },
-  catSakit: { x: 266, y: 647 },
-  catMelahirkan: { x: 563, y: 647 },
-  catPenting: { x: 266, y: 634 },
-  catLuarTanggungan: { x: 563, y: 634 },
-  sisaN: { x: 118, y: 455 },
-  sisaN1: { x: 118, y: 469 },
-  sisaN2: { x: 118, y: 482 }
+  name: { x: 116, y: 765 },
+  nip: { x: 454, y: 765 },
+  position: { x: 116, y: 752 },
+  unit: { x: 117, y: 739 },
+  phone: { x: 458, y: 462 },
+  address: { x: 28, y: 462 },
+  daysCount: { x: 79, y: 589 },
+  startDate: { x: 317, y: 589 },
+  endDate: { x: 478, y: 589 },
+  note: { x: 26, y: 640, maxWidth: 570, lineHeight: 10 },
+  catTahunan: { x: 266, y: 703 },
+  catBesar: { x: 563, y: 703 },
+  catSakit: { x: 266, y: 689 },
+  catMelahirkan: { x: 563, y: 689 },
+  catPenting: { x: 266, y: 676 },
+  catLuarTanggungan: { x: 563, y: 676 },
+  sisaN: { x: 118, y: 497 },
+  sisaN1: { x: 118, y: 511 },
+  sisaN2: { x: 118, y: 524 },
+  signatureDate: { x: 410, y: 897 },
+  signatureName: { x: 460, y: 397 },
+  signatureNip: { x: 460, y: 385 }
 }
 
 /**
@@ -102,6 +105,27 @@ export async function generateLeavePDF({ name, nip, position, unit, phone, addre
       lineHeight: currentCoords.note.lineHeight || 14,
       ...drawOpts
     })
+  }
+
+  // Draw current date (Signature Date) in Indonesian format
+  if (currentCoords.signatureDate) {
+    const todayText = format(new Date(), 'd MMMM yyyy', { locale: id })
+    firstPage.drawText(todayText, {
+      x: currentCoords.signatureDate.x,
+      y: currentCoords.signatureDate.y,
+      ...drawOpts
+    })
+  }
+
+  // Draw signature Name and NIP (centered)
+  if (name && currentCoords.signatureName) {
+    const textWidth = timesRomanFont.widthOfTextAtSize(name, drawOpts.size)
+    firstPage.drawText(name, { ...drawOpts, x: currentCoords.signatureName.x - textWidth / 2, y: currentCoords.signatureName.y })
+  }
+  if (nip && currentCoords.signatureNip) {
+    const nipText = `NIP. ${nip}`
+    const textWidth = timesRomanFont.widthOfTextAtSize(nipText, drawOpts.size)
+    firstPage.drawText(nipText, { ...drawOpts, x: currentCoords.signatureNip.x - textWidth / 2, y: currentCoords.signatureNip.y })
   }
 
   // Draw Quotas

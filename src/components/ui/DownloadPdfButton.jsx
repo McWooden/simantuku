@@ -5,21 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Download, Loader2, Eye } from 'lucide-react'
 import { generateLeavePDF, downloadBlob } from '@/lib/pdfGenerator'
 
-export function DownloadPdfButton({ employeeName, leave, customCoords, variant = "outline", size = "sm", className = "gap-2" }) {
+export function DownloadPdfButton({ pdfData, variant = "outline", size = "sm", className = "gap-2" }) {
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
   const handleDownload = async () => {
     try {
       setLoading(true)
-      const blob = await generateLeavePDF({
-        name: employeeName,
-        category: leave.category,
-        dates: leave.dates,
-        note: leave.note,
-        customCoords
-      })
-      downloadBlob(blob, `${leave.category}_Cuti.pdf`)
+      const blob = await generateLeavePDF(pdfData)
+      downloadBlob(blob, `${pdfData.category}_Cuti.pdf`)
     } catch (e) {
       console.error(e)
       alert(e.message)
@@ -31,13 +25,7 @@ export function DownloadPdfButton({ employeeName, leave, customCoords, variant =
   const handlePreview = async () => {
     try {
       setLoadingPreview(true)
-      const blob = await generateLeavePDF({
-        name: employeeName,
-        category: leave.category,
-        dates: leave.dates,
-        note: leave.note,
-        customCoords
-      })
+      const blob = await generateLeavePDF(pdfData)
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
     } catch (e) {
