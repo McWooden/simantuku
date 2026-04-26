@@ -42,9 +42,9 @@ export default async function AdminRequestsPage() {
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leave Requests</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Permintaan Cuti</h1>
           <p className="text-muted-foreground">
-            Review and manage all employee leave submissions.
+            Tinjau dan kelola semua pengajuan cuti pegawai.
           </p>
         </div>
       </div>
@@ -53,12 +53,12 @@ export default async function AdminRequestsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Employee</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Days</TableHead>
+              <TableHead>Pegawai</TableHead>
+              <TableHead>Kategori</TableHead>
+              <TableHead>Tanggal</TableHead>
+              <TableHead>Hari</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -66,7 +66,7 @@ export default async function AdminRequestsPage() {
               requests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
-                    {request.employees?.name || 'Unknown Employee'}
+                    {request.employees?.name || 'Pegawai Tidak Dikenal'}
                   </TableCell>
                   <TableCell>{request.category}</TableCell>
                   <TableCell>
@@ -95,7 +95,7 @@ export default async function AdminRequestsPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No leave requests found.
+                  Tidak ada permintaan cuti ditemukan.
                 </TableCell>
               </TableRow>
             )}

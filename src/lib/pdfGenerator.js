@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import { format } from 'date-fns'
+import { format, intervalToDuration } from 'date-fns'
 import { id } from 'date-fns/locale'
 
 // Coordinate mapping - adjust these for accurate placement
@@ -8,7 +8,8 @@ export const COORDS = {
   nip: { x: 454, y: 765 },
   position: { x: 116, y: 752 },
   unit: { x: 117, y: 739 },
-  phone: { x: 458, y: 462 },
+  serviceYears: { x: 454, y: 752 },
+  phone: { x: 458, y: 461 },
   address: { x: 28, y: 462 },
   daysCount: { x: 79, y: 589 },
   startDate: { x: 317, y: 589 },
@@ -24,14 +25,21 @@ export const COORDS = {
   sisaN1: { x: 118, y: 511 },
   sisaN2: { x: 118, y: 524 },
   signatureDate: { x: 410, y: 897 },
-  signatureName: { x: 460, y: 397 },
-  signatureNip: { x: 460, y: 385 }
+  signatureName: { x: 463, y: 397 },
+  signatureNip: { x: 463, y: 385 },
+  atasanPosition: { x: 471, y: 323 },
+  atasanName: { x: 471, y: 284 },
+  atasanNip: { x: 471, y: 272 },
+  pejabatPosition: { x: 471, y: 210 },
+  pejabatName: { x: 471, y: 159 },
+  pejabatNip: { x: 471, y: 147 },
+  recipient: { x: 382, y: 857 }
 }
 
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords }) {
+export async function generateLeavePDF({ name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -60,6 +68,12 @@ export async function generateLeavePDF({ name, nip, position, unit, phone, addre
   if (position && currentCoords.position) firstPage.drawText(position || '', { x: currentCoords.position.x, y: currentCoords.position.y, ...drawOpts })
   if (unit && currentCoords.unit) firstPage.drawText(unit || '', { x: currentCoords.unit.x, y: currentCoords.unit.y, ...drawOpts })
   if (address && currentCoords.address) firstPage.drawText(address || '', { x: currentCoords.address.x, y: currentCoords.address.y, ...drawOpts })
+
+  if (employeeStartDate && currentCoords.serviceYears) {
+    const duration = intervalToDuration({ start: new Date(employeeStartDate), end: new Date() });
+    const text = `${duration.years || 0} Tahun ${duration.months || 0} Bulan ${duration.days || 0} Hari`;
+    firstPage.drawText(text, { x: currentCoords.serviceYears.x, y: currentCoords.serviceYears.y, ...drawOpts });
+  }
 
   // Centered fields
   if (phone && currentCoords.phone) {
@@ -143,6 +157,46 @@ export async function generateLeavePDF({ name, nip, position, unit, phone, addre
     }
     if (quotas.sisaN2 !== undefined && currentCoords.sisaN2) {
       drawCentered(String(quotas.sisaN2), currentCoords.sisaN2)
+    }
+  }
+
+  // Draw Recipient (Kepada Yth)
+  if (recipientType && currentCoords.recipient) {
+    const text = `${recipientType} Magelang Utara`
+    firstPage.drawText(text, { x: currentCoords.recipient.x, y: currentCoords.recipient.y, ...drawOpts })
+  }
+
+  // Draw Atasan Langsung
+  if (atasan) {
+    if (atasan.position && currentCoords.atasanPosition) {
+      const textWidth = timesRomanFont.widthOfTextAtSize(atasan.position, drawOpts.size)
+      firstPage.drawText(atasan.position, { ...drawOpts, x: currentCoords.atasanPosition.x - textWidth / 2, y: currentCoords.atasanPosition.y })
+    }
+    if (atasan.name && currentCoords.atasanName) {
+      const textWidth = timesRomanFont.widthOfTextAtSize(atasan.name, drawOpts.size)
+      firstPage.drawText(atasan.name, { ...drawOpts, x: currentCoords.atasanName.x - textWidth / 2, y: currentCoords.atasanName.y })
+    }
+    if (atasan.nip && currentCoords.atasanNip) {
+      const text = `NIP. ${atasan.nip}`
+      const textWidth = timesRomanFont.widthOfTextAtSize(text, drawOpts.size)
+      firstPage.drawText(text, { ...drawOpts, x: currentCoords.atasanNip.x - textWidth / 2, y: currentCoords.atasanNip.y })
+    }
+  }
+
+  // Draw Pejabat Berwenang
+  if (pejabat) {
+    if (pejabat.position && currentCoords.pejabatPosition) {
+      const textWidth = timesRomanFont.widthOfTextAtSize(pejabat.position, drawOpts.size)
+      firstPage.drawText(pejabat.position, { ...drawOpts, x: currentCoords.pejabatPosition.x - textWidth / 2, y: currentCoords.pejabatPosition.y })
+    }
+    if (pejabat.name && currentCoords.pejabatName) {
+      const textWidth = timesRomanFont.widthOfTextAtSize(pejabat.name, drawOpts.size)
+      firstPage.drawText(pejabat.name, { ...drawOpts, x: currentCoords.pejabatName.x - textWidth / 2, y: currentCoords.pejabatName.y })
+    }
+    if (pejabat.nip && currentCoords.pejabatNip) {
+      const text = `NIP. ${pejabat.nip}`
+      const textWidth = timesRomanFont.widthOfTextAtSize(text, drawOpts.size)
+      firstPage.drawText(text, { ...drawOpts, x: currentCoords.pejabatNip.x - textWidth / 2, y: currentCoords.pejabatNip.y })
     }
   }
 

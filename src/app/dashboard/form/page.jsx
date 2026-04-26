@@ -2,6 +2,7 @@
 
 import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { submitLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Clock } from 'lucide-react'
@@ -32,11 +33,31 @@ export default function LeaveFormPage() {
   const [employeeUnit, setEmployeeUnit] = useState('')
   const [employeePosition, setEmployeePosition] = useState('')
   const [employeePhone, setEmployeePhone] = useState('')
+  const [employeeStartDate, setEmployeeStartDate] = useState(null)
   const [address, setAddress] = useState('')
   const [error, setError] = useState('')
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
   const [customCoords, setCustomCoords] = useState(COORDS)
   const [devMode, setDevMode] = useState(false)
+  const [superiors, setSuperiors] = useState([])
+  const [atasanId, setAtasanId] = useState('')
+  const [pejabatId, setPejabatId] = useState('')
+  const [dates, setDates] = useState([])
+  const [debouncedDates, setDebouncedDates] = useState([])
+  const [isDatesApplying, setIsDatesApplying] = useState(false)
+  const [category, setCategory] = useState('Tahunan')
+  const [note, setNote] = useState('')
+  const [recipientType, setRecipientType] = useState('Camat')
+
+  // Debounce dates for PDF preview
+  useEffect(() => {
+    setIsDatesApplying(true)
+    const handler = setTimeout(() => {
+      setDebouncedDates(dates)
+      setIsDatesApplying(false)
+    }, 1500)
+    return () => clearTimeout(handler)
+  }, [dates])
 
   // Check for pending requests on mount
   useEffect(() => {
@@ -46,15 +67,23 @@ export default function LeaveFormPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number').eq('auth_id', user.id).single()
+          const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number, start_date').eq('auth_id', user.id).single()
           if (employee) {
             setEmployeeName(employee.name)
             setEmployeeNip(employee.nip || '')
             setEmployeeUnit(employee.unit || '')
             setEmployeePosition(employee.position || '')
             setEmployeePhone(employee.phone_number || '')
+            setEmployeeStartDate(employee.start_date || null)
             const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
             setHasPending(count > 0)
+
+            const { data: superiorData, error: superiorError } = await supabase.from('employees').select('id, name, nip, position').eq('is_superior', true)
+            if (superiorData && !superiorError) {
+              setSuperiors(superiorData)
+            } else {
+              console.warn("Could not load superiors, column might be missing:", superiorError?.message)
+            }
 
             const { getLeaveQuotaOverviewAction } = await import('@/app/actions/leaveActions')
             const overview = await getLeaveQuotaOverviewAction(employee.id)
@@ -74,11 +103,8 @@ export default function LeaveFormPage() {
     }
     checkPending()
   }, [])
-  const [dates, setDates] = useState([])
-  const [category, setCategory] = useState('Tahunan')
-  const [note, setNote] = useState('')
 
-  const [showPreview, setShowPreview] = useState(true)
+  const [showPreview, setShowPreview] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
 
   // Live Preview effect
@@ -94,10 +120,14 @@ export default function LeaveFormPage() {
           phone: employeePhone,
           address,
           category,
-          dates,
+          dates: debouncedDates,
           note,
           quotas,
-          customCoords
+          customCoords,
+          atasan: superiors.find(s => s.id === atasanId),
+          pejabat: superiors.find(s => s.id === pejabatId),
+          recipientType,
+          employeeStartDate
         })
         if (active) {
           const url = URL.createObjectURL(blob)
@@ -112,7 +142,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, dates, note, quotas, customCoords])
+  }, [employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -134,6 +164,11 @@ export default function LeaveFormPage() {
         return
       }
 
+      if (!atasanId || !pejabatId) {
+        setError('Pilih Atasan Langsung dan Pejabat Berwenang.')
+        return
+      }
+
       // Sort dates and convert to YYYY-MM-DD
       const formattedDates = [...dates]
         .sort((a, b) => a.getTime() - b.getTime())
@@ -144,7 +179,17 @@ export default function LeaveFormPage() {
           return `${year}-${month}-${day}`
         })
 
-      const res = await submitLeaveAction(category, formattedDates, note);
+      const payload = {
+        category,
+        dates: formattedDates,
+        note,
+        address,
+        recipientType,
+        atasanId,
+        pejabatId
+      }
+
+      const res = await submitLeaveAction(payload);
 
       if (res?.error) {
         setError(res.error)
@@ -183,7 +228,9 @@ export default function LeaveFormPage() {
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-bold text-base">Akses Dibatasi</p>
-                  <p className="mt-1">Anda saat ini memiliki permintaan yang <strong>Menunggu</strong>. Anda tidak dapat mengirim permintaan baru sampai permintaan saat ini disetujui, ditolak, atau dibatalkan.</p>
+                  <p className="mt-1">
+                    Anda saat ini memiliki <strong>satu permintaan yang Menunggu (Pending)</strong>. Anda tidak dapat mengajukan permintaan baru sampai permintaan tersebut diproses (disetujui/ditolak) atau Anda menghapusnya sendiri di halaman Dashboard. <Link href="/dashboard#recent-requests" className="text-blue-600 hover:text-blue-800 underline font-medium">Hapus disini.</Link>
+                  </p>
                 </div>
               </div>
             )}
@@ -223,7 +270,8 @@ export default function LeaveFormPage() {
                     <CardTitle className="text-lg">Pilih Tanggal</CardTitle>
                   </div>
                   {dates.length > 0 && (
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full animate-in fade-in zoom-in">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-all ${isDatesApplying ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-primary/10 text-primary border border-transparent'}`}>
+                      {isDatesApplying && <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />}
                       {dates.length} Hari Terpilih
                     </span>
                   )}
@@ -269,18 +317,95 @@ export default function LeaveFormPage() {
                   <CardTitle className="text-lg">Informasi Tambahan</CardTitle>
                 </div>
                 <CardContent className="p-6 space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Alamat Selama Menjalankan Cuti (Opsional)</Label>
-                    <Textarea 
-                      id="address" 
-                      placeholder="Contoh: Jl. Merdeka No. 123, RT 01/RW 02..." 
-                      value={address} 
-                      onChange={(e) => setAddress(e.target.value)} 
-                      maxLength={52}
-                    />
-                  </div>
-                  <NoteInput value={note} onChange={setNote} />
+                  <DebouncedTextarea
+                    id="address"
+                    label="Alamat Selama Menjalankan Cuti (Opsional)"
+                    placeholder="Contoh: Jl. Merdeka No. 123, RT 01/RW 02..."
+                    value={address}
+                    onChange={setAddress}
+                    maxLength={52}
+                  />
+                  <DebouncedTextarea
+                    id="note"
+                    label="Catatan / Alasan (Opsional)"
+                    placeholder="Jelaskan secara singkat alasan cuti Anda..."
+                    value={note}
+                    onChange={setNote}
+                    maxLength={247}
+                    tip="Tip: Pratinjau dokumen diperbarui secara otomatis setelah Anda selesai mengetik."
+                  />
                   {error && <p className="text-sm text-destructive font-medium mt-4 bg-destructive/10 p-3 rounded-md">{error}</p>}
+                </CardContent>
+              </Card>
+
+              {/* Step 4: Pejabat */}
+              <Card className="shadow-sm border-slate-200 overflow-hidden">
+                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                  <CardTitle className="text-lg">Pejabat & Tujuan Surat</CardTitle>
+                </div>
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-3">
+                    <Label>Tujuan Surat Kepada Yth.</Label>
+                    <div className="flex items-center gap-6 pt-1">
+                      <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                        <input
+                          type="radio"
+                          name="recipientType"
+                          value="Lurah"
+                          checked={recipientType === 'Lurah'}
+                          onChange={() => setRecipientType('Lurah')}
+                          className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                        />
+                        <span>Lurah</span>
+                      </Label>
+                      <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                        <input
+                          type="radio"
+                          name="recipientType"
+                          value="Camat"
+                          checked={recipientType === 'Camat'}
+                          onChange={() => setRecipientType('Camat')}
+                          className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                        />
+                        <span>Camat</span>
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Atasan Langsung</Label>
+                    <Select value={atasanId} onValueChange={setAtasanId}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Pilih Atasan Langsung" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {superiors.length === 0 ? (
+                          <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
+                        ) : (
+                          superiors.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pejabat Berwenang Memberikan Cuti</Label>
+                    <Select value={pejabatId} onValueChange={setPejabatId}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Pilih Pejabat Berwenang" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {superiors.length === 0 ? (
+                          <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
+                        ) : (
+                          superiors.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -304,7 +429,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                <DownloadPdfButton pdfData={{ name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords }} />
+                <DownloadPdfButton pdfData={{ name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>
@@ -328,50 +453,6 @@ export default function LeaveFormPage() {
               )}
             </div>
 
-            {/* Dev Coordinate Tuner */}
-            <div className="mt-4 bg-slate-100 rounded-xl overflow-hidden ring-1 ring-slate-200">
-              <div className="flex justify-between items-center p-3 bg-slate-200/50">
-                <h3 className="font-semibold text-sm text-slate-700 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                  Penyesuai Koordinat Dev
-                </h3>
-                <Button size="sm" variant="outline" className="h-7 text-xs bg-white" onClick={() => setDevMode(!devMode)}>
-                  {devMode ? 'Tutup Panel' : 'Buka Penyesuai'}
-                </Button>
-              </div>
-              {devMode && (
-                <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto max-h-[30vh]">
-                  {Object.entries(customCoords)
-                    .filter(([key]) => !key.startsWith('cat'))
-                    .map(([key, val]) => {
-                    const isFocusItems = ['sisaN', 'sisaN1', 'sisaN2'].includes(key);
-                    return (
-                      <div key={key} className={`p-2 border rounded-lg bg-white shadow-sm transition-all ${isFocusItems ? 'ring-1 ring-primary/30 border-primary/20' : ''}`}>
-                        <div className="font-semibold text-xs mb-1 text-slate-600 truncate" title={key}>{key}</div>
-                        <div className="flex flex-col gap-1 text-[10px]">
-                          <label className="flex items-center gap-2">
-                            <span className="w-3 text-slate-400 font-medium">X</span>
-                            <Input type="number" className="h-6 text-xs px-1.5" value={val.x} onChange={e => setCustomCoords(prev => ({ ...prev, [key]: { ...prev[key], x: Number(e.target.value) } }))} />
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <span className="w-3 text-slate-400 font-medium">Y</span>
-                            <Input type="number" className="h-6 text-xs px-1.5" value={val.y} onChange={e => setCustomCoords(prev => ({ ...prev, [key]: { ...prev[key], y: Number(e.target.value) } }))} />
-                          </label>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <div className="col-span-full pt-2">
-                    <Button variant="secondary" size="sm" className="w-full text-xs h-7" onClick={() => {
-                      console.log("Exported Coords:", JSON.stringify(customCoords, null, 2))
-                      alert("Koordinat dicetak ke konsol untuk di-copy-paste!")
-                    }}>
-                      Log Koordinat ke Konsol
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -381,20 +462,58 @@ export default function LeaveFormPage() {
 }
 
 
-const NoteInput = memo(function NoteInput({ value, onChange }) {
+const DebouncedTextarea = memo(function DebouncedTextarea({ id, label, placeholder, value, onChange, maxLength, tip }) {
+  const [innerValue, setInnerValue] = useState(value)
+  const [status, setStatus] = useState('idle')
+
+  useEffect(() => {
+    if (value !== innerValue) {
+      setInnerValue(value)
+    }
+  }, [value])
+
+  const handleChange = (e) => {
+    setInnerValue(e.target.value)
+    setStatus('typing')
+  }
+
+  useEffect(() => {
+    if (status !== 'typing') return;
+    const handler = setTimeout(() => {
+      setStatus('applying')
+      onChange(innerValue)
+      setTimeout(() => setStatus('idle'), 1000)
+    }, 2000) // 2 second debounce
+    return () => clearTimeout(handler)
+  }, [innerValue, status, onChange])
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="note">Catatan / Alasan (Opsional)</Label>
+      <div className="flex justify-between items-center">
+        <Label htmlFor={id}>{label}</Label>
+        {status === 'typing' && (
+          <span className="text-[10px] font-medium text-amber-600 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
+            <Clock className="w-3 h-3" /> Menunggu...
+          </span>
+        )}
+        {status === 'applying' && (
+          <span className="text-[10px] font-medium text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full">
+            <div className="w-2.5 h-2.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> Menerapkan...
+          </span>
+        )}
+      </div>
       <Textarea
-        id="note"
-        placeholder="Jelaskan secara singkat alasan cuti Anda..."
-        defaultValue={value}
-        maxLength={247}
-        onBlur={(e) => onChange(e.target.value)}
+        id={id}
+        placeholder={placeholder}
+        value={innerValue}
+        onChange={handleChange}
+        maxLength={maxLength}
       />
-      <p className="text-[10px] text-muted-foreground italic">
-        Tip: Catatan disimpan ketika Anda selesai mengetik atau mengklik di luar area teks.
-      </p>
+      {tip && (
+        <p className="text-[10px] text-muted-foreground italic">
+          {tip}
+        </p>
+      )}
     </div>
   )
 })

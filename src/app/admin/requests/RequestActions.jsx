@@ -30,7 +30,7 @@ export function RequestActions({ requestId }) {
         disabled={loading}
       >
         <Check className="h-4 w-4 mr-1" />
-        Approve
+        Setujui
       </Button>
       <Button 
         size="sm" 
@@ -40,7 +40,7 @@ export function RequestActions({ requestId }) {
         disabled={loading}
       >
         <X className="h-4 w-4 mr-1" />
-        Reject
+        Tolak
       </Button>
     </div>
   )

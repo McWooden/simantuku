@@ -68,7 +68,8 @@ async function ensureAndCapQuotas(supabase, employeeId, currentYear) {
   return finalBuckets || [];
 }
 
-export async function submitLeaveAction(category, datesStrArr, note) {
+export async function submitLeaveAction(payload) {
+  const { category, dates, note, address, recipientType, atasanId, pejabatId } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
@@ -87,7 +88,7 @@ export async function submitLeaveAction(category, datesStrArr, note) {
     return { error: "You already have a pending leave request. Please wait for it to be processed or delete it before submitting another." }
   }
 
-  const daysRequested = datesStrArr.length;
+  const daysRequested = dates.length;
   if (daysRequested === 0) return { error: "No dates selected" }
 
   if (category === 'Tahunan') {
@@ -113,8 +114,12 @@ export async function submitLeaveAction(category, datesStrArr, note) {
     const { data: cutiRow, error: cutiErr } = await supabase.from('cuti').insert({
       employee_id: employee.id,
       category,
-      dates: datesStrArr,
+      dates,
       note,
+      address,
+      recipient_type: recipientType,
+      atasan_id: atasanId,
+      pejabat_id: pejabatId,
       status: 'pending'
     }).select('id').single()
 
@@ -146,8 +151,12 @@ export async function submitLeaveAction(category, datesStrArr, note) {
     const { error: cutiErr } = await supabase.from('cuti').insert({
       employee_id: employee.id,
       category,
-      dates: datesStrArr,
+      dates,
       note,
+      address,
+      recipient_type: recipientType,
+      atasan_id: atasanId,
+      pejabat_id: pejabatId,
       status: 'pending'
     })
     if (cutiErr) return { error: cutiErr.message }
@@ -240,17 +249,20 @@ export async function deleteLeaveAction(requestId) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
 
-  // Get request and verify ownership via the employee join
+  const { data: employee } = await supabase.from('employees').select('id').eq('auth_id', user.id).single()
+  if (!employee) return { error: "Unauthorized" }
+
+  // Get request
   const { data: request, error: fetchErr } = await supabase
     .from('cuti')
-    .select('*, employees!inner(auth_id)')
+    .select('*')
     .eq('id', requestId)
     .single()
 
   if (fetchErr || !request) return { error: "Request not found" }
   
   // Security: only owner can delete their OWN PENDING request
-  if (request.employees.auth_id !== user.id) return { error: "Unauthorized" }
+  if (request.employee_id !== employee.id) return { error: "Unauthorized" }
   if (request.status !== 'pending') return { error: "Only pending requests can be deleted" }
 
   // Refund Quota if Tahunan

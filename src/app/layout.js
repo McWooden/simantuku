@@ -8,7 +8,7 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Simantuku",
+  title: "Sicerdas",
   description: "Advanced Leave Management System",
 };
 

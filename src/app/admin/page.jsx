@@ -49,13 +49,13 @@ export default async function AdminDashboardPage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold mb-3 backdrop-blur-sm border border-white/10">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Administrative Access
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Akses Administratif
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-              Command Center
+              Pusat Kontrol
             </h1>
             <p className="text-slate-300 max-w-xl">
-              Monitor incoming requests, manage employee profiles, and view organization-wide leave metrics.
+              Pantau permintaan masuk, kelola profil pegawai, dan lihat metrik cuti organisasi.
             </p>
           </div>
           
@@ -64,8 +64,8 @@ export default async function AdminDashboardPage() {
               <Activity className="w-6 h-6 text-indigo-300" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-300">System Status</p>
-              <p className="text-lg font-bold text-emerald-400">All Systems Nominal</p>
+              <p className="text-sm font-medium text-slate-300">Status Sistem</p>
+              <p className="text-lg font-bold text-emerald-400">Semua Sistem Normal</p>
             </div>
           </div>
         </div>
@@ -82,14 +82,14 @@ export default async function AdminDashboardPage() {
           </div>
           <CardContent className="p-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500" /> Pending Requests
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Permintaan Menunggu
             </h3>
             <div className="flex items-end justify-between">
               <div className="text-5xl font-black text-slate-800 tracking-tighter">
                 {pendingCount || 0}
               </div>
               <Link href="/admin/requests" className="text-sm font-medium text-primary hover:underline group-hover:translate-x-1 transition-transform inline-flex items-center">
-                Review <ArrowRight className="ml-1 w-4 h-4" />
+                Tinjau <ArrowRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
           </CardContent>
@@ -102,14 +102,14 @@ export default async function AdminDashboardPage() {
           </div>
           <CardContent className="p-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500" /> Active Employees
+              <span className="w-2 h-2 rounded-full bg-blue-500" /> Pegawai Aktif
             </h3>
             <div className="flex items-end justify-between">
               <div className="text-5xl font-black text-slate-800 tracking-tighter">
                 {employeeCount || 0}
               </div>
               <Link href="/admin/employees" className="text-sm font-medium text-primary hover:underline group-hover:translate-x-1 transition-transform inline-flex items-center">
-                Manage <ArrowRight className="ml-1 w-4 h-4" />
+                Kelola <ArrowRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
           </CardContent>
@@ -122,14 +122,14 @@ export default async function AdminDashboardPage() {
           </div>
           <CardContent className="p-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Approved Leaves
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Cuti Disetujui
             </h3>
             <div className="flex items-end justify-between">
               <div className="text-5xl font-black text-slate-800 tracking-tighter">
                 {approvedCount || 0}
               </div>
               <span className="text-sm font-medium text-muted-foreground inline-flex items-center">
-                All Time
+                Sepanjang Waktu
               </span>
             </div>
           </CardContent>
@@ -138,7 +138,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Quick Actions Grid */}
-      <h2 className="text-2xl font-bold tracking-tight pt-4">Quick Actions</h2>
+      <h2 className="text-2xl font-bold tracking-tight pt-4">Aksi Cepat</h2>
       <div className="grid gap-6 md:grid-cols-2">
         <Link href="/admin/requests" className="group block focus:outline-none">
           <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-amber-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden">
@@ -148,8 +148,8 @@ export default async function AdminDashboardPage() {
                 <FileText className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-amber-700 transition-colors">Review Leave Requests</h3>
-                <p className="text-muted-foreground">Approve or deny incoming employee leave applications and check quotas.</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-amber-700 transition-colors">Tinjau Permintaan Cuti</h3>
+                <p className="text-muted-foreground">Setujui atau tolak pengajuan cuti pegawai dan periksa sisa kuota.</p>
               </div>
             </div>
           </div>
@@ -163,8 +163,8 @@ export default async function AdminDashboardPage() {
                 <Users className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-indigo-700 transition-colors">Employee Directory</h3>
-                <p className="text-muted-foreground">Manage your team, create official profiles, and update quota balances.</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-indigo-700 transition-colors">Direktori Pegawai</h3>
+                <p className="text-muted-foreground">Kelola tim Anda, buat profil resmi, dan perbarui saldo kuota.</p>
               </div>
             </div>
           </div>
@@ -178,8 +178,8 @@ export default async function AdminDashboardPage() {
                 <Link2 className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">Pending Access (Unlinked)</h3>
-                <p className="text-muted-foreground">Map new Google accounts to the official Employee Directory.</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">Akses Tertunda (Belum Ditautkan)</h3>
+                <p className="text-muted-foreground">Tautkan akun Google baru ke Direktori Pegawai resmi.</p>
               </div>
             </div>
           </div>

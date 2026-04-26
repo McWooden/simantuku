@@ -41,9 +41,14 @@ export default async function DashboardPage() {
   const currentYear = new Date().getFullYear();
 
   // Fetch recent leave history
+  // Fetch recent leave history with relations
   const { data: leaveHistory } = await supabase
     .from('cuti')
-    .select('*')
+    .select(`
+      *,
+      atasan:employees!atasan_id(id, name, nip, position),
+      pejabat:employees!pejabat_id(id, name, nip, position)
+    `)
     .eq('employee_id', employee.id)
     .order('created_at', { ascending: false })
     .limit(5)
@@ -70,17 +75,7 @@ export default async function DashboardPage() {
         <div className="absolute bottom-0 right-32 translate-y-1/2 w-48 h-48 bg-white/10 rounded-full blur-xl" />
       </div>
 
-      {hasPending && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4 text-amber-800 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="p-2 bg-amber-100 rounded-full">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-bold">Permintaan Menunggu Proses</h4>
-            <p className="text-sm opacity-90">Anda saat ini memiliki permintaan yang menunggu persetujuan. Anda tidak dapat mengirim permintaan baru sampai yang ini diselesaikan atau dibatalkan.</p>
-          </div>
-        </div>
-      )}
+
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Advanced Quota Card */}
@@ -164,7 +159,18 @@ export default async function DashboardPage() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Permintaan Terbaru</h2>
+        {hasPending && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4 text-amber-800 shadow-sm animate-in fade-in duration-500 mb-2">
+            <div className="p-2 bg-amber-100 rounded-full shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold">Permintaan Menunggu Proses</h4>
+              <p className="text-sm opacity-90 mt-0.5">Anda memiliki satu permintaan yang menunggu persetujuan. Anda tidak dapat mengajukan permintaan baru sampai yang ini diselesaikan, atau Anda dapat menghapusnya sendiri di bawah ini. <strong className="font-semibold block mt-1">Hubungi admin jika tidak direspon dalam 1x24 jam.</strong></p>
+            </div>
+          </div>
+        )}
+        <h2 id="recent-requests" className="text-2xl font-bold tracking-tight pt-2">Permintaan Terbaru</h2>
 
         <div className="flex flex-col gap-3">
           {leaveHistory && leaveHistory.length > 0 ? (
@@ -175,61 +181,69 @@ export default async function DashboardPage() {
               return (
                 <div 
                   key={leave.id} 
-                  className="bg-white rounded-xl shadow-sm border border-border/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex items-center p-0 relative"
+                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex items-center justify-between p-5 flex-col sm:flex-row gap-4"
                 >
-                  <div className={`w-2 h-full absolute left-0 top-0 bottom-0 ${
-                    isAcc ? 'bg-emerald-500' : isRejected ? 'bg-red-500' : 'bg-amber-400'
-                  }`} />
-                  
-                  <div className="flex-1 p-5 pl-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-2.5 rounded-full mt-1 sm:mt-0 ${
-                        isAcc ? 'bg-emerald-100 text-emerald-600' : 
-                        isRejected ? 'bg-red-100 text-red-600' : 
-                        'bg-amber-100 text-amber-600'
-                      }`}>
-                        {isAcc ? <CheckCircle2 className="w-5 h-5" /> : 
-                         isRejected ? <AlertCircle className="w-5 h-5" /> : 
-                         <Clock className="w-5 h-5" />}
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-bold text-lg mb-0.5">{leave.category}</h4>
-                        <DateDetailsModal dates={leave.dates}>
-                          <button className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {leave.dates && leave.dates.length > 0 ? (
-                              leave.dates.length === 1 ? (
-                                format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
-                              ) : (
-                                `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
-                              )
-                            ) : (
-                              format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
-                            )}
-                          </button>
-                        </DateDetailsModal>
-                      </div>
+                  <div className="flex items-start gap-4 w-full sm:w-auto">
+                    <div className="p-2 rounded-full mt-0.5 bg-slate-50 text-slate-500 border border-slate-100">
+                      {isAcc ? <CheckCircle2 className="w-4 h-4" /> : 
+                       isRejected ? <AlertCircle className="w-4 h-4" /> : 
+                       <Clock className="w-4 h-4" />}
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                      <DownloadPdfButton 
-                        employeeName={employee.name} 
-                        leave={leave} 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-muted-foreground hover:text-primary gap-1.5"
-                      />
-                      {leave.status === 'pending' && (
-                        <CancelLeaveButton leaveId={leave.id} />
-                      )}
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider
-                        ${isAcc ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' :
-                          isRejected ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' :
-                            'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20'}`}>
-                        {leave.status}
-                      </span>
+                    <div>
+                      <h4 className="font-semibold text-base mb-0.5 text-slate-800">{leave.category}</h4>
+                      <DateDetailsModal dates={leave.dates}>
+                        <button className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5">
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          {leave.dates && leave.dates.length > 0 ? (
+                            leave.dates.length === 1 ? (
+                              format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
+                            ) : (
+                              `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
+                            )
+                          ) : (
+                            format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
+                          )}
+                        </button>
+                      </DateDetailsModal>
                     </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <DownloadPdfButton 
+                      pdfData={{
+                        name: employee.name,
+                        nip: employee.nip,
+                        position: employee.position,
+                        unit: employee.unit,
+                        phone: employee.phone_number,
+                        employeeStartDate: employee.start_date,
+                        category: leave.category,
+                        dates: leave.dates,
+                        note: leave.note,
+                        address: leave.address,
+                        recipientType: leave.recipient_type,
+                        atasan: leave.atasan,
+                        pejabat: leave.pejabat,
+                        quotas: {
+                           sisaN: buckets.find(b => b.year === currentYear)?.remaining || 0,
+                           sisaN1: buckets.find(b => b.year === currentYear - 1)?.remaining || 0,
+                           sisaN2: buckets.find(b => b.year === currentYear - 2)?.remaining || 0
+                        }
+                      }}
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-muted-foreground hover:text-primary gap-1.5 h-8 px-2"
+                    />
+                    {leave.status === 'pending' && (
+                      <CancelLeaveButton leaveId={leave.id} />
+                    )}
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide
+                      ${isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        isRejected ? 'bg-red-50 text-red-700 border border-red-200' :
+                          'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                      {leave.status}
+                    </span>
                   </div>
                 </div>
               )

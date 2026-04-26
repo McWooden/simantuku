@@ -9,7 +9,7 @@ export function CancelLeaveButton({ leaveId }) {
   const [loading, setLoading] = useState(false)
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel this leave request? Your quota will be restored.')) {
+    if (!confirm('Apakah Anda yakin ingin menghapus permintaan cuti ini? Kuota Anda akan dikembalikan otomatis.')) {
       return
     }
 
@@ -34,7 +34,7 @@ export function CancelLeaveButton({ leaveId }) {
       ) : (
         <Trash2 className="w-3.5 h-3.5" />
       )}
-      Cancel
+      Hapus
     </Button>
   )
 }
