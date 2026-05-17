@@ -7,7 +7,6 @@ import { submitLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Clock } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -205,11 +204,11 @@ export default function LeaveFormPage() {
         const fileExt = attachmentFile.name.split('.').pop();
         const fileName = `${employeeId}-${Date.now()}.${fileExt}`;
         const filePath = `${category}/${fileName}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('leave_attachments')
           .upload(filePath, attachmentFile);
-          
+
         if (uploadError) {
           setError(`Gagal mengunggah lampiran: ${uploadError.message}`);
           setLoading(false);
@@ -254,7 +253,6 @@ export default function LeaveFormPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Ajukan Cuti</h1>
               <p className="text-slate-500 mt-1 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
                 Selesaikan langkah-langkah untuk mengirim formulir Anda
               </p>
             </div>
@@ -277,237 +275,235 @@ export default function LeaveFormPage() {
 
             <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
 
-              <Card className="shadow-sm border-slate-200 overflow-hidden bg-white">
-                <div className="flex flex-col">
-                  {/* Section 1: Informasi Dasar */}
-                  <div className="p-6 sm:p-8 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                      <span className="w-1.5 h-6 bg-primary rounded-full"></span> Informasi Dasar
-                    </h2>
-                    
-                    <div className="space-y-6">
-                      <div className="space-y-3 max-w-md">
-                        <Label htmlFor="category" className="text-slate-600 font-semibold">Kategori Cuti</Label>
-                        <Select value={category} onValueChange={handleCategoryChange}>
-                          <SelectTrigger id="category" className="h-11">
-                            <SelectValue placeholder="Pilih kategori" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
-                            <SelectItem value="Besar">Cuti Besar</SelectItem>
-                            <SelectItem value="Sakit">Cuti Sakit</SelectItem>
-                            <SelectItem value="Melahirkan">Cuti Melahirkan</SelectItem>
-                            <SelectItem value="Penting">Cuti Karena Alasan Penting</SelectItem>
-                            <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+              <div className="flex flex-col space-y-12 pt-2">
+                {/* Section 1: Informasi Dasar */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 border-b border-slate-200 pb-3">
+                    <span className="w-1.5 h-6 bg-primary rounded-full"></span> Informasi Dasar
+                  </h2>
 
-                      {['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(category) && (
-                        <div className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in fade-in zoom-in duration-300">
-                          <Label htmlFor="attachment" className="font-semibold text-amber-900 flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-amber-600" />
-                            Dokumen Pendukung (Opsional)
-                          </Label>
-                          <Input 
-                            id="attachment" 
-                            type="file" 
-                            accept=".pdf"
-                            onChange={(e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                if (file.type !== 'application/pdf') {
-                                  setError('File lampiran harus berformat PDF.');
-                                  e.target.value = '';
-                                  setAttachmentFile(null);
-                                  setAttachmentPreview(null);
-                                  return;
-                                }
-                                if (file.size > 5 * 1024 * 1024) {
-                                  setError('Ukuran file lampiran maksimal 5MB.');
-                                  e.target.value = '';
-                                  setAttachmentFile(null);
-                                  setAttachmentPreview(null);
-                                  return;
-                                }
-                                setError('');
-                                setAttachmentFile(file);
-                                setAttachmentPreview(URL.createObjectURL(file));
-                              } else {
+                  <div className="space-y-6">
+                    <div className="space-y-3 max-w-md">
+                      <Label htmlFor="category" className="text-slate-600 font-semibold">Kategori Cuti</Label>
+                      <Select value={category} onValueChange={handleCategoryChange}>
+                        <SelectTrigger id="category" className="h-11">
+                          <SelectValue placeholder="Pilih kategori" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
+                          <SelectItem value="Besar">Cuti Besar</SelectItem>
+                          <SelectItem value="Sakit">Cuti Sakit</SelectItem>
+                          <SelectItem value="Melahirkan">Cuti Melahirkan</SelectItem>
+                          <SelectItem value="Penting">Cuti Karena Alasan Penting</SelectItem>
+                          <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(category) && (
+                      <div className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in fade-in zoom-in duration-300">
+                        <Label htmlFor="attachment" className="font-semibold text-amber-900 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600" />
+                          Dokumen Pendukung (Opsional)
+                        </Label>
+                        <Input
+                          id="attachment"
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              if (file.type !== 'application/pdf') {
+                                setError('File lampiran harus berformat PDF.');
+                                e.target.value = '';
                                 setAttachmentFile(null);
                                 setAttachmentPreview(null);
+                                return;
                               }
-                            }}
-                            className="cursor-pointer file:cursor-pointer bg-white"
-                          />
-                          <p className="text-xs text-amber-700/80 font-medium">
-                            *Cuti Sakit, Besar, Melahirkan, Penting, atau Di Luar Tanggungan Negara biasanya memerlukan surat pendukung (Maks. 5MB, berformat PDF).
-                          </p>
-                          
-                          {attachmentPreview && (
-                            <div className="mt-4 border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
-                              <div className="bg-slate-50 px-3 py-2 border-b text-xs font-semibold text-slate-700 flex justify-between items-center">
-                                <span className="truncate pr-4">Pratinjau: {attachmentFile?.name}</span>
-                                <span className="text-slate-500 whitespace-nowrap">{(attachmentFile?.size / 1024 / 1024).toFixed(2)} MB</span>
-                              </div>
-                              <iframe 
-                                src={attachmentPreview} 
-                                className="w-full h-80 border-0"
-                                title="Pratinjau Lampiran"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Section 2: Jadwal */}
-                  <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/30">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span> Jadwal Cuti
-                      </h2>
-                      {dates.length > 0 && (
-                        <span className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all ${isDatesApplying ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500 text-white shadow-sm'}`}>
-                          {isDatesApplying && <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />}
-                          {dates.length} Hari Terpilih
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center">
-                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-                    <Calendar
-                      mode="multiple"
-                      selected={dates}
-                      onSelect={setDates}
-                      className="rounded-md"
-                      modifiers={{
-                        weekend: (date) => date.getDay() === 0 || date.getDay() === 6
-                      }}
-                      modifiersClassNames={{
-                        weekend: "text-amber-600 bg-amber-50/60 font-semibold hover:bg-amber-100 hover:text-amber-700 data-[selected-single=true]:bg-amber-500 data-[selected-single=true]:text-white"
-                      }}
-                    />
-                  </div>
-                  {dates.length === 0 && (
-                    <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
-                      Harap pilih setidaknya satu tanggal dari kalender.
-                    </p>
-                  )}
-                  {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
-                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300 max-w-sm w-full">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
-                        <p className="opacity-90 leading-relaxed">
-                          Anda memilih hari Sabtu atau Minggu. Hari kerja biasanya Senin hingga Jumat.
+                              if (file.size > 5 * 1024 * 1024) {
+                                setError('Ukuran file lampiran maksimal 5MB.');
+                                e.target.value = '';
+                                setAttachmentFile(null);
+                                setAttachmentPreview(null);
+                                return;
+                              }
+                              setError('');
+                              setAttachmentFile(file);
+                              setAttachmentPreview(URL.createObjectURL(file));
+                            } else {
+                              setAttachmentFile(null);
+                              setAttachmentPreview(null);
+                            }
+                          }}
+                          className="cursor-pointer file:cursor-pointer bg-white"
+                        />
+                        <p className="text-xs text-amber-700/80 font-medium">
+                          *Cuti Sakit, Besar, Melahirkan, Penting, atau Di Luar Tanggungan Negara biasanya memerlukan surat pendukung (Maks. 5MB, berformat PDF).
                         </p>
+
+                        {attachmentPreview && (
+                          <div className="mt-4 border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
+                            <div className="bg-slate-50 px-3 py-2 border-b text-xs font-semibold text-slate-700 flex justify-between items-center">
+                              <span className="truncate pr-4">Pratinjau: {attachmentFile?.name}</span>
+                              <span className="text-slate-500 whitespace-nowrap">{(attachmentFile?.size / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                            <iframe
+                              src={attachmentPreview}
+                              className="w-full h-80 border-0"
+                              title="Pratinjau Lampiran"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                    </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 2: Jadwal */}
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span> Jadwal Cuti
+                    </h2>
+                    {dates.length > 0 && (
+                      <span className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all self-start sm:self-auto ${isDatesApplying ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500 text-white shadow-sm'}`}>
+                        {isDatesApplying && <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />}
+                        {dates.length} Hari Terpilih
+                      </span>
+                    )}
                   </div>
 
-                  {/* Section 3: Detail & Persetujuan */}
-                  <div className="p-6 sm:p-8">
-                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                      <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span> Detail & Persetujuan
-                    </h2>
-                    
-                    <div className="space-y-6">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <DebouncedTextarea
-                          id="address"
-                          label="Alamat Selama Cuti"
-                          placeholder="Contoh: Jl. Merdeka No. 123..."
-                          value={address}
-                          onChange={setAddress}
-                          maxLength={52}
-                        />
-                        <DebouncedTextarea
-                          id="note"
-                          label="Alasan / Catatan"
-                          placeholder="Jelaskan secara singkat..."
-                          value={note}
-                          onChange={setNote}
-                          maxLength={247}
-                        />
+                  <div className="flex flex-col items-start">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 inline-block">
+                      <Calendar
+                        mode="multiple"
+                        selected={dates}
+                        onSelect={setDates}
+                        className="rounded-md"
+                        modifiers={{
+                          weekend: (date) => date.getDay() === 0 || date.getDay() === 6
+                        }}
+                        modifiersClassNames={{
+                          weekend: "text-amber-600 bg-amber-50/60 font-semibold hover:bg-amber-100 hover:text-amber-700 data-[selected-single=true]:bg-amber-500 data-[selected-single=true]:text-white"
+                        }}
+                      />
+                    </div>
+                    {dates.length === 0 && (
+                      <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
+                        Harap pilih setidaknya satu tanggal dari kalender.
+                      </p>
+                    )}
+                    {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300 max-w-sm w-full">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
+                          <p className="opacity-90 leading-relaxed">
+                            Anda memilih hari Sabtu atau Minggu. Hari kerja biasanya Senin hingga Jumat.
+                          </p>
+                        </div>
                       </div>
+                    )}
+                  </div>
+                </div>
 
-                      <div className="pt-6 mt-6 border-t border-slate-100">
-                        <div className="grid md:grid-cols-2 gap-8">
-                          <div className="space-y-4">
-                            <Label className="text-slate-600 font-semibold">Tujuan Surat Kepada Yth.</Label>
-                            <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 max-w-sm">
-                              <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="recipientType"
-                                  value="Lurah"
-                                  checked={recipientType === 'Lurah'}
-                                  onChange={() => setRecipientType('Lurah')}
-                                  className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                                />
-                                <span>Lurah</span>
-                              </Label>
-                              <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="recipientType"
-                                  value="Camat"
-                                  checked={recipientType === 'Camat'}
-                                  onChange={() => setRecipientType('Camat')}
-                                  className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                                />
-                                <span>Camat</span>
-                              </Label>
-                            </div>
+                {/* Section 3: Detail & Persetujuan */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 border-b border-slate-200 pb-3">
+                    <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span> Detail & Persetujuan
+                  </h2>
+
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <DebouncedTextarea
+                        id="address"
+                        label="Alamat Selama Cuti"
+                        placeholder="Contoh: Jl. Merdeka No. 123..."
+                        value={address}
+                        onChange={setAddress}
+                        maxLength={52}
+                      />
+                      <DebouncedTextarea
+                        id="note"
+                        label="Alasan / Catatan"
+                        placeholder="Jelaskan secara singkat..."
+                        value={note}
+                        onChange={setNote}
+                        maxLength={247}
+                      />
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-slate-100">
+                      <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <Label className="text-slate-600 font-semibold">Tujuan Surat Kepada Yth.</Label>
+                          <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 max-w-sm">
+                            <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                              <input
+                                type="radio"
+                                name="recipientType"
+                                value="Lurah"
+                                checked={recipientType === 'Lurah'}
+                                onChange={() => setRecipientType('Lurah')}
+                                className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                              />
+                              <span>Lurah</span>
+                            </Label>
+                            <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                              <input
+                                type="radio"
+                                name="recipientType"
+                                value="Camat"
+                                checked={recipientType === 'Camat'}
+                                onChange={() => setRecipientType('Camat')}
+                                className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                              />
+                              <span>Camat</span>
+                            </Label>
                           </div>
+                        </div>
 
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
-                              <Select value={atasanId} onValueChange={setAtasanId}>
-                                <SelectTrigger className="h-11 bg-white">
-                                  <SelectValue placeholder="Pilih Atasan Langsung" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {superiors.length === 0 ? (
-                                    <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
-                                  ) : (
-                                    superiors.map(s => (
-                                      <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
-                              <Select value={pejabatId} onValueChange={setPejabatId}>
-                                <SelectTrigger className="h-11 bg-white">
-                                  <SelectValue placeholder="Pilih Pejabat Berwenang" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {superiors.length === 0 ? (
-                                    <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
-                                  ) : (
-                                    superiors.map(s => (
-                                      <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
+                            <Select value={atasanId} onValueChange={setAtasanId}>
+                              <SelectTrigger className="h-11 bg-white">
+                                <SelectValue placeholder="Pilih Atasan Langsung" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {superiors.length === 0 ? (
+                                  <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
+                                ) : (
+                                  superiors.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
+                            <Select value={pejabatId} onValueChange={setPejabatId}>
+                              <SelectTrigger className="h-11 bg-white">
+                                <SelectValue placeholder="Pilih Pejabat Berwenang" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {superiors.length === 0 ? (
+                                  <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
+                                ) : (
+                                  superiors.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Actions */}
               {error && (
