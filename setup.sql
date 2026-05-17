@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS cuti (
   address TEXT,
   recipient_type TEXT,
   atasan_id UUID REFERENCES employees(id) ON DELETE SET NULL,
-  pejabat_id UUID REFERENCES employees(id) ON DELETE SET NULL
+  pejabat_id UUID REFERENCES employees(id) ON DELETE SET NULL,
+  attachment_url TEXT
 );
 
 -- 4. Leave Quota Table
@@ -77,4 +78,12 @@ CREATE TABLE IF NOT EXISTS leave_quota_breakdown (
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS address TEXT;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS recipient_type TEXT;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS atasan_id UUID REFERENCES employees(id) ON DELETE SET NULL;
+-- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+
+-- ==========================================
+-- STORAGE BUCKETS (Run in SQL Editor if needed)
+-- ==========================================
+-- insert into storage.buckets (id, name, public) values ('leave_attachments', 'leave_attachments', true) on conflict do nothing;
+-- CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING ( bucket_id = 'leave_attachments' );
+-- CREATE POLICY "Auth Insert" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'leave_attachments' AND auth.role() = 'authenticated' );
 

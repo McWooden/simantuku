@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature } from 'lucide-react'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()

@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { RequestActions } from './RequestActions'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
+import { AlertCircle, FileText } from 'lucide-react'
 
 export default async function AdminRequestsPage() {
   const supabase = await createClient()
@@ -32,7 +33,7 @@ export default async function AdminRequestsPage() {
     .from('cuti')
     .select(`
       *,
-      employees (
+      employee:employees!employee_id (
         name
       )
     `)
@@ -57,6 +58,7 @@ export default async function AdminRequestsPage() {
               <TableHead>Kategori</TableHead>
               <TableHead>Tanggal</TableHead>
               <TableHead>Hari</TableHead>
+              <TableHead>Lampiran</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -66,13 +68,40 @@ export default async function AdminRequestsPage() {
               requests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
-                    {request.employees?.name || 'Pegawai Tidak Dikenal'}
+                    {request.employee?.name || 'Pegawai Tidak Dikenal'}
                   </TableCell>
                   <TableCell>{request.category}</TableCell>
                   <TableCell>
                     <DateDetailsModal dates={request.dates} />
                   </TableCell>
                   <TableCell>{request.dates.length}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const requiresAttachment = ['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(request.category);
+                      if (request.attachment_url) {
+                        return (
+                          <a 
+                            href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/leave_attachments/${request.attachment_url}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" /> Lihat File
+                          </a>
+                        )
+                      }
+                      
+                      if (requiresAttachment) {
+                        return (
+                          <div className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                            <AlertCircle className="w-3.5 h-3.5" /> Tanpa Lampiran
+                          </div>
+                        )
+                      }
+                      
+                      return <span className="text-xs text-slate-400 font-medium">-</span>;
+                    })()}
+                  </TableCell>
                   <TableCell>
                     <Badge 
                       variant={request.status === 'pending' ? 'outline' : 'secondary'}
@@ -94,7 +123,7 @@ export default async function AdminRequestsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   Tidak ada permintaan cuti ditemukan.
                 </TableCell>
               </TableRow>

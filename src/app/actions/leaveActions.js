@@ -69,7 +69,7 @@ async function ensureAndCapQuotas(supabase, employeeId, currentYear) {
 }
 
 export async function submitLeaveAction(payload) {
-  const { category, dates, note, address, recipientType, atasanId, pejabatId } = payload;
+  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
@@ -120,6 +120,7 @@ export async function submitLeaveAction(payload) {
       recipient_type: recipientType,
       atasan_id: atasanId,
       pejabat_id: pejabatId,
+      attachment_url: attachmentUrl,
       status: 'pending'
     }).select('id').single()
 
@@ -157,6 +158,7 @@ export async function submitLeaveAction(payload) {
       recipient_type: recipientType,
       atasan_id: atasanId,
       pejabat_id: pejabatId,
+      attachment_url: attachmentUrl,
       status: 'pending'
     })
     if (cutiErr) return { error: cutiErr.message }

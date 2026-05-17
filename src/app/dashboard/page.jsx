@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-violet-600 p-8 text-white shadow-lg">
         <div className="relative z-10">
-          <p className="text-primary-foreground/80 font-medium mb-1">
+          <p suppressHydrationWarning className="text-primary-foreground/80 font-medium mb-1">
             {format(new Date(), "EEEE, d MMMM yyyy", { locale: id })}
           </p>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
@@ -193,7 +193,7 @@ export default async function DashboardPage() {
                     <div>
                       <h4 className="font-semibold text-base mb-0.5 text-slate-800">{leave.category}</h4>
                       <DateDetailsModal dates={leave.dates}>
-                        <button className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5">
+                        <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5">
                           <CalendarDays className="w-3.5 h-3.5" />
                           {leave.dates && leave.dates.length > 0 ? (
                             leave.dates.length === 1 ? (
@@ -212,6 +212,8 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                     <DownloadPdfButton 
                       pdfData={{
+                        employeeId: employee.id,
+                        status: leave.status,
                         name: employee.name,
                         nip: employee.nip,
                         position: employee.position,

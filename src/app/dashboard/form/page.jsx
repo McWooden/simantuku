@@ -28,6 +28,7 @@ export default function LeaveFormPage() {
   const [loading, setLoading] = useState(false)
   const [checkingPending, setCheckingPending] = useState(true)
   const [hasPending, setHasPending] = useState(false)
+  const [employeeId, setEmployeeId] = useState('')
   const [employeeName, setEmployeeName] = useState('')
   const [employeeNip, setEmployeeNip] = useState('')
   const [employeeUnit, setEmployeeUnit] = useState('')
@@ -38,7 +39,6 @@ export default function LeaveFormPage() {
   const [error, setError] = useState('')
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
   const [customCoords, setCustomCoords] = useState(COORDS)
-  const [devMode, setDevMode] = useState(false)
   const [superiors, setSuperiors] = useState([])
   const [atasanId, setAtasanId] = useState('')
   const [pejabatId, setPejabatId] = useState('')
@@ -46,6 +46,8 @@ export default function LeaveFormPage() {
   const [debouncedDates, setDebouncedDates] = useState([])
   const [isDatesApplying, setIsDatesApplying] = useState(false)
   const [category, setCategory] = useState('Tahunan')
+  const [attachmentFile, setAttachmentFile] = useState(null)
+  const [attachmentPreview, setAttachmentPreview] = useState(null)
   const [note, setNote] = useState('')
   const [recipientType, setRecipientType] = useState('Camat')
 
@@ -69,6 +71,7 @@ export default function LeaveFormPage() {
         if (user) {
           const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number, start_date').eq('auth_id', user.id).single()
           if (employee) {
+            setEmployeeId(employee.id)
             setEmployeeName(employee.name)
             setEmployeeNip(employee.nip || '')
             setEmployeeUnit(employee.unit || '')
@@ -113,6 +116,7 @@ export default function LeaveFormPage() {
     const updatePreview = async () => {
       try {
         const blob = await generateLeavePDF({
+          employeeId,
           name: employeeName,
           nip: employeeNip,
           unit: employeeUnit,
@@ -142,7 +146,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate])
+  }, [employeeId, employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -155,17 +159,32 @@ export default function LeaveFormPage() {
 
     try {
       if (!category) {
-        setError('Please select a leave category.')
+        setError('Harap pilih kategori cuti.')
+        setLoading(false)
         return
       }
 
       if (dates.length === 0) {
-        setError('Please select at least one date.')
+        setError('Harap pilih minimal satu tanggal cuti.')
+        setLoading(false)
+        return
+      }
+
+      if (!note || !note.trim()) {
+        setError('Harap isi Alasan / Catatan Cuti.')
+        setLoading(false)
+        return
+      }
+
+      if (!address || !address.trim()) {
+        setError('Harap isi Alamat Selama Cuti.')
+        setLoading(false)
         return
       }
 
       if (!atasanId || !pejabatId) {
-        setError('Pilih Atasan Langsung dan Pejabat Berwenang.')
+        setError('Harap pilih Atasan Langsung dan Pejabat Berwenang.')
+        setLoading(false)
         return
       }
 
@@ -179,6 +198,26 @@ export default function LeaveFormPage() {
           return `${year}-${month}-${day}`
         })
 
+      let attachmentUrl = null;
+      if (attachmentFile) {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const fileExt = attachmentFile.name.split('.').pop();
+        const fileName = `${employeeId}-${Date.now()}.${fileExt}`;
+        const filePath = `${category}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('leave_attachments')
+          .upload(filePath, attachmentFile);
+          
+        if (uploadError) {
+          setError(`Gagal mengunggah lampiran: ${uploadError.message}`);
+          setLoading(false);
+          return;
+        }
+        attachmentUrl = filePath;
+      }
+
       const payload = {
         category,
         dates: formattedDates,
@@ -186,7 +225,8 @@ export default function LeaveFormPage() {
         address,
         recipientType,
         atasanId,
-        pejabatId
+        pejabatId,
+        attachmentUrl
       }
 
       const res = await submitLeaveAction(payload);
@@ -237,47 +277,107 @@ export default function LeaveFormPage() {
 
             <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
 
-              {/* Step 1: Category */}
-              <Card className="shadow-sm border-slate-200 overflow-hidden">
-                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                  <CardTitle className="text-lg">Kategori Cuti</CardTitle>
-                </div>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <Select value={category} onValueChange={handleCategoryChange}>
-                      <SelectTrigger id="category" className="h-11">
-                        <SelectValue placeholder="Pilih kategori" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
-                        <SelectItem value="Besar">Cuti Besar</SelectItem>
-                        <SelectItem value="Sakit">Cuti Sakit</SelectItem>
-                        <SelectItem value="Melahirkan">Cuti Melahirkan</SelectItem>
-                        <SelectItem value="Penting">Cuti Karena Alasan Penting</SelectItem>
-                        <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
+              <Card className="shadow-sm border-slate-200 overflow-hidden bg-white">
+                <div className="flex flex-col">
+                  {/* Section 1: Informasi Dasar */}
+                  <div className="p-6 sm:p-8 border-b border-slate-100">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-primary rounded-full"></span> Informasi Dasar
+                    </h2>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-3 max-w-md">
+                        <Label htmlFor="category" className="text-slate-600 font-semibold">Kategori Cuti</Label>
+                        <Select value={category} onValueChange={handleCategoryChange}>
+                          <SelectTrigger id="category" className="h-11">
+                            <SelectValue placeholder="Pilih kategori" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
+                            <SelectItem value="Besar">Cuti Besar</SelectItem>
+                            <SelectItem value="Sakit">Cuti Sakit</SelectItem>
+                            <SelectItem value="Melahirkan">Cuti Melahirkan</SelectItem>
+                            <SelectItem value="Penting">Cuti Karena Alasan Penting</SelectItem>
+                            <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-              {/* Step 2: Dates */}
-              <Card className="shadow-sm border-slate-200 overflow-hidden">
-                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                    <CardTitle className="text-lg">Pilih Tanggal</CardTitle>
+                      {['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(category) && (
+                        <div className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in fade-in zoom-in duration-300">
+                          <Label htmlFor="attachment" className="font-semibold text-amber-900 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            Dokumen Pendukung (Opsional)
+                          </Label>
+                          <Input 
+                            id="attachment" 
+                            type="file" 
+                            accept=".pdf"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                if (file.type !== 'application/pdf') {
+                                  setError('File lampiran harus berformat PDF.');
+                                  e.target.value = '';
+                                  setAttachmentFile(null);
+                                  setAttachmentPreview(null);
+                                  return;
+                                }
+                                if (file.size > 5 * 1024 * 1024) {
+                                  setError('Ukuran file lampiran maksimal 5MB.');
+                                  e.target.value = '';
+                                  setAttachmentFile(null);
+                                  setAttachmentPreview(null);
+                                  return;
+                                }
+                                setError('');
+                                setAttachmentFile(file);
+                                setAttachmentPreview(URL.createObjectURL(file));
+                              } else {
+                                setAttachmentFile(null);
+                                setAttachmentPreview(null);
+                              }
+                            }}
+                            className="cursor-pointer file:cursor-pointer bg-white"
+                          />
+                          <p className="text-xs text-amber-700/80 font-medium">
+                            *Cuti Sakit, Besar, Melahirkan, Penting, atau Di Luar Tanggungan Negara biasanya memerlukan surat pendukung (Maks. 5MB, berformat PDF).
+                          </p>
+                          
+                          {attachmentPreview && (
+                            <div className="mt-4 border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
+                              <div className="bg-slate-50 px-3 py-2 border-b text-xs font-semibold text-slate-700 flex justify-between items-center">
+                                <span className="truncate pr-4">Pratinjau: {attachmentFile?.name}</span>
+                                <span className="text-slate-500 whitespace-nowrap">{(attachmentFile?.size / 1024 / 1024).toFixed(2)} MB</span>
+                              </div>
+                              <iframe 
+                                src={attachmentPreview} 
+                                className="w-full h-80 border-0"
+                                title="Pratinjau Lampiran"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {dates.length > 0 && (
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-all ${isDatesApplying ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-primary/10 text-primary border border-transparent'}`}>
-                      {isDatesApplying && <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />}
-                      {dates.length} Hari Terpilih
-                    </span>
-                  )}
-                </div>
-                <CardContent className="p-6">
-                  <div className="flex justify-center bg-slate-50/50 rounded-xl border p-2">
+
+                  {/* Section 2: Jadwal */}
+                  <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/30">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span> Jadwal Cuti
+                      </h2>
+                      {dates.length > 0 && (
+                        <span className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all ${isDatesApplying ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500 text-white shadow-sm'}`}>
+                          {isDatesApplying && <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />}
+                          {dates.length} Hari Terpilih
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
                     <Calendar
                       mode="multiple"
                       selected={dates}
@@ -292,124 +392,129 @@ export default function LeaveFormPage() {
                     />
                   </div>
                   {dates.length === 0 && (
-                    <p className="text-center text-sm text-slate-500 mt-4 italic">
+                    <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
                       Harap pilih setidaknya satu tanggal dari kalender.
                     </p>
                   )}
                   {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
-                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300">
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300 max-w-sm w-full">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <div>
                         <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
-                        <p className="opacity-90">
-                          Anda memilih tanggal pada hari Sabtu atau Minggu. Hari kerja biasanya hanya Senin hingga Jumat.
+                        <p className="opacity-90 leading-relaxed">
+                          Anda memilih hari Sabtu atau Minggu. Hari kerja biasanya Senin hingga Jumat.
                         </p>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Step 3: Extra Info */}
-              <Card className="shadow-sm border-slate-200 overflow-hidden">
-                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                  <CardTitle className="text-lg">Informasi Tambahan</CardTitle>
-                </div>
-                <CardContent className="p-6 space-y-6">
-                  <DebouncedTextarea
-                    id="address"
-                    label="Alamat Selama Menjalankan Cuti (Opsional)"
-                    placeholder="Contoh: Jl. Merdeka No. 123, RT 01/RW 02..."
-                    value={address}
-                    onChange={setAddress}
-                    maxLength={52}
-                  />
-                  <DebouncedTextarea
-                    id="note"
-                    label="Catatan / Alasan (Opsional)"
-                    placeholder="Jelaskan secara singkat alasan cuti Anda..."
-                    value={note}
-                    onChange={setNote}
-                    maxLength={247}
-                    tip="Tip: Pratinjau dokumen diperbarui secara otomatis setelah Anda selesai mengetik."
-                  />
-                  {error && <p className="text-sm text-destructive font-medium mt-4 bg-destructive/10 p-3 rounded-md">{error}</p>}
-                </CardContent>
-              </Card>
-
-              {/* Step 4: Pejabat */}
-              <Card className="shadow-sm border-slate-200 overflow-hidden">
-                <div className="bg-slate-50/50 border-b px-6 py-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                  <CardTitle className="text-lg">Pejabat & Tujuan Surat</CardTitle>
-                </div>
-                <CardContent className="p-6 space-y-6">
-                  <div className="space-y-3">
-                    <Label>Tujuan Surat Kepada Yth.</Label>
-                    <div className="flex items-center gap-6 pt-1">
-                      <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                        <input
-                          type="radio"
-                          name="recipientType"
-                          value="Lurah"
-                          checked={recipientType === 'Lurah'}
-                          onChange={() => setRecipientType('Lurah')}
-                          className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                        />
-                        <span>Lurah</span>
-                      </Label>
-                      <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                        <input
-                          type="radio"
-                          name="recipientType"
-                          value="Camat"
-                          checked={recipientType === 'Camat'}
-                          onChange={() => setRecipientType('Camat')}
-                          className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                        />
-                        <span>Camat</span>
-                      </Label>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Atasan Langsung</Label>
-                    <Select value={atasanId} onValueChange={setAtasanId}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Pilih Atasan Langsung" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {superiors.length === 0 ? (
-                          <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
-                        ) : (
-                          superiors.map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+
+                  {/* Section 3: Detail & Persetujuan */}
+                  <div className="p-6 sm:p-8">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span> Detail & Persetujuan
+                    </h2>
+                    
+                    <div className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <DebouncedTextarea
+                          id="address"
+                          label="Alamat Selama Cuti"
+                          placeholder="Contoh: Jl. Merdeka No. 123..."
+                          value={address}
+                          onChange={setAddress}
+                          maxLength={52}
+                        />
+                        <DebouncedTextarea
+                          id="note"
+                          label="Alasan / Catatan"
+                          placeholder="Jelaskan secara singkat..."
+                          value={note}
+                          onChange={setNote}
+                          maxLength={247}
+                        />
+                      </div>
+
+                      <div className="pt-6 mt-6 border-t border-slate-100">
+                        <div className="grid md:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <Label className="text-slate-600 font-semibold">Tujuan Surat Kepada Yth.</Label>
+                            <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 max-w-sm">
+                              <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="recipientType"
+                                  value="Lurah"
+                                  checked={recipientType === 'Lurah'}
+                                  onChange={() => setRecipientType('Lurah')}
+                                  className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                                />
+                                <span>Lurah</span>
+                              </Label>
+                              <Label className="flex items-center gap-2 font-medium cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="recipientType"
+                                  value="Camat"
+                                  checked={recipientType === 'Camat'}
+                                  onChange={() => setRecipientType('Camat')}
+                                  className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
+                                />
+                                <span>Camat</span>
+                              </Label>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
+                              <Select value={atasanId} onValueChange={setAtasanId}>
+                                <SelectTrigger className="h-11 bg-white">
+                                  <SelectValue placeholder="Pilih Atasan Langsung" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {superiors.length === 0 ? (
+                                    <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
+                                  ) : (
+                                    superiors.map(s => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
+                              <Select value={pejabatId} onValueChange={setPejabatId}>
+                                <SelectTrigger className="h-11 bg-white">
+                                  <SelectValue placeholder="Pilih Pejabat Berwenang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {superiors.length === 0 ? (
+                                    <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
+                                  ) : (
+                                    superiors.map(s => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Pejabat Berwenang Memberikan Cuti</Label>
-                    <Select value={pejabatId} onValueChange={setPejabatId}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Pilih Pejabat Berwenang" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {superiors.length === 0 ? (
-                          <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
-                        ) : (
-                          superiors.map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
+                </div>
               </Card>
 
               {/* Actions */}
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-200 font-medium">
+                  {error}
+                </div>
+              )}
               <div className="flex items-center justify-end gap-3 pt-4">
                 <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
                   Batal
@@ -429,7 +534,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                <DownloadPdfButton pdfData={{ name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
+                <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>

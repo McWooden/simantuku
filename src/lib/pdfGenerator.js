@@ -7,7 +7,7 @@ export const COORDS = {
   name: { x: 116, y: 765 },
   nip: { x: 454, y: 765 },
   position: { x: 116, y: 752 },
-  unit: { x: 117, y: 739 },
+  unit: { x: 116, y: 739 },
   serviceYears: { x: 454, y: 752 },
   phone: { x: 458, y: 461 },
   address: { x: 28, y: 462 },
@@ -25,11 +25,15 @@ export const COORDS = {
   sisaN1: { x: 118, y: 511 },
   sisaN2: { x: 118, y: 524 },
   signatureDate: { x: 410, y: 897 },
-  signatureName: { x: 463, y: 397 },
-  signatureNip: { x: 463, y: 385 },
+  debug: false, // Ubah ke false untuk menyembunyikan garis merah
+  signatureBox: { x: 350, y: 390, width: 230, height: 60 },
+  signatureName: { x: 460, y: 397 },
+  signatureNip: { x: 460, y: 385 },
+  atasanSignatureBox: { x: 360, y: 278, width: 215, height: 45 },
   atasanPosition: { x: 471, y: 323 },
   atasanName: { x: 471, y: 284 },
   atasanNip: { x: 471, y: 272 },
+  pejabatSignatureBox: { x: 360, y: 155, width: 215, height: 55 },
   pejabatPosition: { x: 471, y: 210 },
   pejabatName: { x: 471, y: 159 },
   pejabatNip: { x: 471, y: 147 },
@@ -39,7 +43,7 @@ export const COORDS = {
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate }) {
+export async function generateLeavePDF({ employeeId, name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate, status }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -54,6 +58,32 @@ export async function generateLeavePDF({ name, nip, position, unit, phone, addre
 
   // Embed the Times New Roman font
   const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+
+  let signatureImage = null;
+  let atasanSignatureImage = null;
+  let pejabatSignatureImage = null;
+
+  try {
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+
+    if (employeeId) {
+      const { data, error } = await supabase.storage.from('signatures').download(`${employeeId}/signature.png`);
+      if (data && !error) signatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
+    }
+
+    if (atasan?.id && status === 'acc') {
+      const { data, error } = await supabase.storage.from('signatures').download(`${atasan.id}/signature.png`);
+      if (data && !error) atasanSignatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
+    }
+
+    if (pejabat?.id && status === 'acc') {
+      const { data, error } = await supabase.storage.from('signatures').download(`${pejabat.id}/signature.png`);
+      if (data && !error) pejabatSignatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
+    }
+  } catch (e) {
+    console.warn("Could not fetch signatures:", e);
+  }
 
   // Get the first page of the document
   const pages = pdfDoc.getPages()
@@ -130,6 +160,48 @@ export async function generateLeavePDF({ name, nip, position, unit, phone, addre
       ...drawOpts
     })
   }
+
+  // Helper to draw signature box and image
+  const drawSignatureBox = (img, boxCoords) => {
+    if (!boxCoords) return;
+
+    // Draw Developer Debug Box
+    if (currentCoords.debug) {
+      firstPage.drawRectangle({
+        x: boxCoords.x,
+        y: boxCoords.y,
+        width: boxCoords.width,
+        height: boxCoords.height,
+        borderColor: rgb(1, 0, 0),
+        borderWidth: 1,
+      });
+    }
+
+    // Draw signature Image inside the box (Auto-Scale)
+    if (img) {
+      // Hitung skala agar pas di dalam kotak (fit contain) tanpa merusak rasio gambar
+      const scaleX = boxCoords.width / img.width;
+      const scaleY = boxCoords.height / img.height;
+      const scale = Math.min(scaleX, scaleY);
+
+      const dims = img.scale(scale);
+
+      // Pusatkan gambar secara horizontal dan vertikal di dalam kotak
+      const xOffset = (boxCoords.width - dims.width) / 2;
+      const yOffset = (boxCoords.height - dims.height) / 2;
+
+      firstPage.drawImage(img, {
+        x: boxCoords.x + xOffset,
+        y: boxCoords.y + yOffset,
+        width: dims.width,
+        height: dims.height,
+      });
+    }
+  };
+
+  drawSignatureBox(signatureImage, currentCoords.signatureBox);
+  drawSignatureBox(atasanSignatureImage, currentCoords.atasanSignatureBox);
+  drawSignatureBox(pejabatSignatureImage, currentCoords.pejabatSignatureBox);
 
   // Draw signature Name and NIP (centered)
   if (name && currentCoords.signatureName) {
