@@ -19,25 +19,23 @@ export function PdfPreviewEmbed({ request }) {
         
         let quotas = { sisaN: 0, sisaN1: 0, sisaN2: 0 }
         
-        if (request.category === 'Tahunan') {
-          const quotaData = await getLeaveQuotaOverviewAction(request.employee_id)
-          const currentYear = new Date().getFullYear()
+        const quotaData = await getLeaveQuotaOverviewAction(request.employee_id)
+        const currentYear = new Date().getFullYear()
 
-          // Add back the deducted days for this specific request to show the quota AT THE TIME of request
-          if (request.breakdowns && request.breakdowns.length > 0) {
-            request.breakdowns.forEach(bd => {
-              const bucket = quotaData.buckets?.find(b => b.year === bd.quota_year)
-              if (bucket) {
-                bucket.remaining += bd.days_deducted
-              }
-            })
-          }
+        // Add back the deducted days for this specific request to show the quota AT THE TIME of request
+        if (request.category === 'Tahunan' && request.breakdowns && request.breakdowns.length > 0) {
+          request.breakdowns.forEach(bd => {
+            const bucket = quotaData.buckets?.find(b => b.year === bd.quota_year)
+            if (bucket) {
+              bucket.remaining += bd.days_deducted
+            }
+          })
+        }
 
-          quotas = {
-             sisaN: quotaData.buckets?.find(b => b.year === currentYear)?.remaining || 0,
-             sisaN1: quotaData.buckets?.find(b => b.year === currentYear - 1)?.remaining || 0,
-             sisaN2: quotaData.buckets?.find(b => b.year === currentYear - 2)?.remaining || 0
-          }
+        quotas = {
+           sisaN: quotaData.buckets?.find(b => b.year === currentYear)?.remaining || 0,
+           sisaN1: quotaData.buckets?.find(b => b.year === currentYear - 1)?.remaining || 0,
+           sisaN2: quotaData.buckets?.find(b => b.year === currentYear - 2)?.remaining || 0
         }
 
         const pdfData = {
