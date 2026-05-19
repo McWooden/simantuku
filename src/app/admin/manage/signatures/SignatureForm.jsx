@@ -19,12 +19,21 @@ export default function SignatureForm({ employees }) {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0]
-    if (selectedFile && selectedFile.type !== 'image/png') {
-      setStatus({ type: 'error', message: 'Harap unggah file PNG (transparan).' })
-      setFile(null)
-      setPreviewUrl(null)
-      e.target.value = '' // reset input
-      return
+    if (selectedFile) {
+      if (selectedFile.type !== 'image/png') {
+        setStatus({ type: 'error', message: 'Harap unggah file PNG (transparan).' })
+        setFile(null)
+        setPreviewUrl(null)
+        e.target.value = '' // reset input
+        return
+      }
+      if (selectedFile.size > 2 * 1024 * 1024) {
+        setStatus({ type: 'error', message: 'Ukuran file maksimal 2MB.' })
+        setFile(null)
+        setPreviewUrl(null)
+        e.target.value = '' // reset input
+        return
+      }
     }
     setFile(selectedFile)
     if (selectedFile) {
@@ -115,7 +124,7 @@ export default function SignatureForm({ employees }) {
           disabled={uploading}
         />
         <p className="text-xs text-muted-foreground">
-          Gunakan gambar dengan background transparan agar terlihat rapi pada PDF.
+          Gunakan gambar PNG dengan background transparan (Maksimal 2MB) agar terlihat rapi pada PDF.
         </p>
         {previewUrl && (
           <div className="mt-4 border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50 relative">

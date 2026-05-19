@@ -6,7 +6,7 @@ import { updateLeaveStatusAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
 import { Check, X } from 'lucide-react'
 
-export function RequestActions({ requestId }) {
+export function RequestActions({ requestId, redirectUrl }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -16,8 +16,14 @@ export function RequestActions({ requestId }) {
 
     if (res?.error) {
       alert(res.error)
+      setLoading(false)
+    } else {
+      if (redirectUrl) {
+        router.push(redirectUrl)
+      } else {
+        setLoading(false)
+      }
     }
-    setLoading(false)
   }
 
   return (

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import SignatureForm from './SignatureForm'
+import SignatureList from './SignatureList'
 
 export default async function AdminSignaturesPage() {
   const supabase = await createClient()
@@ -17,23 +17,16 @@ export default async function AdminSignaturesPage() {
 
   if (employee?.role !== 'admin') redirect('/dashboard')
 
-  // 2. Fetch all employees to populate the dropdown
+  // 2. Fetch all employees to populate the list
   const { data: allEmployees } = await supabase
     .from('employees')
     .select('id, name, nip')
     .order('name', { ascending: true })
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Kelola Tanda Tangan</h1>
-        <p className="text-muted-foreground">
-          Unggah tanda tangan (PNG Transparan) untuk pegawai.
-        </p>
-      </div>
-
-      <div className="rounded-md border p-6 bg-card">
-        <SignatureForm employees={allEmployees} />
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="rounded-md border p-6 bg-slate-50/50 shadow-sm">
+        <SignatureList employees={allEmployees} />
       </div>
     </div>
   )

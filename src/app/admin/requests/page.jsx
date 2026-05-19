@@ -11,8 +11,11 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { RequestActions } from './RequestActions'
+import { AdminDeleteRequestButton } from './AdminDeleteRequestButton'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
-import { AlertCircle, FileText } from 'lucide-react'
+import { AlertCircle, FileText, Eye } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 export default async function AdminRequestsPage() {
   const supabase = await createClient()
@@ -67,8 +70,10 @@ export default async function AdminRequestsPage() {
             {requests && requests.length > 0 ? (
               requests.map((request) => (
                 <TableRow key={request.id}>
-                  <TableCell className="font-medium">
-                    {request.employee?.name || 'Pegawai Tidak Dikenal'}
+                  <TableCell className="font-medium max-w-[150px] truncate">
+                    <Link href={`/admin/requests/${request.id}`} className="hover:underline text-primary" title="Lihat Detail">
+                      {request.employee?.name || 'Pegawai Tidak Dikenal'}
+                    </Link>
                   </TableCell>
                   <TableCell>{request.category}</TableCell>
                   <TableCell>
@@ -84,17 +89,18 @@ export default async function AdminRequestsPage() {
                             href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/leave_attachments/${request.attachment_url}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 transition-colors"
+                            className="inline-flex items-center justify-center w-7 h-7 text-blue-600 hover:text-blue-800 bg-blue-50 rounded-md border border-blue-200 transition-colors"
+                            title="Lihat File"
                           >
-                            <FileText className="w-3.5 h-3.5" /> Lihat File
+                            <FileText className="w-4 h-4" />
                           </a>
                         )
                       }
                       
                       if (requiresAttachment) {
                         return (
-                          <div className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                            <AlertCircle className="w-3.5 h-3.5" /> Tanpa Lampiran
+                          <div className="inline-flex items-center justify-center w-7 h-7 text-amber-700 bg-amber-50 rounded-md border border-amber-200" title="Tanpa Lampiran">
+                            <AlertCircle className="w-4 h-4" />
                           </div>
                         )
                       }
@@ -115,9 +121,14 @@ export default async function AdminRequestsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {request.status === 'pending' && (
-                      <RequestActions requestId={request.id} />
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {request.status === 'pending' && (
+                        <RequestActions requestId={request.id} />
+                      )}
+                      {request.status === 'ditolak' && (
+                        <AdminDeleteRequestButton requestId={request.id} />
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, FileText, CheckCircle, ArrowRight, Clock, ShieldCheck, Activity, Link2, FileSignature } from 'lucide-react'
+import { Users, FileText, CheckCircle, ArrowRight, Clock, ShieldCheck, Activity, Link2, FileSignature, FolderArchive } from 'lucide-react'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
@@ -185,16 +185,16 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/signatures" className="group block focus:outline-none md:col-span-2 lg:col-span-1">
-          <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-sky-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-sky-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
+        <Link href="/admin/manage" className="group block focus:outline-none md:col-span-2 lg:col-span-1">
+          <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-violet-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-violet-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
             <div className="flex items-start gap-4">
-              <div className="p-4 bg-sky-100/50 text-sky-600 rounded-xl group-hover:bg-sky-100 transition-colors">
-                <FileSignature className="w-8 h-8" />
+              <div className="p-4 bg-violet-100/50 text-violet-600 rounded-xl group-hover:bg-violet-100 transition-colors">
+                <FolderArchive className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-sky-700 transition-colors">Tanda Tangan</h3>
-                <p className="text-muted-foreground">Kelola gambar tanda tangan Anda untuk disisipkan otomatis ke dalam PDF permohonan cuti.</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-violet-700 transition-colors">Manajemen Storage</h3>
+                <p className="text-muted-foreground">Kelola lampiran cuti dan gambar tanda tangan pegawai di satu tempat.</p>
               </div>
             </div>
           </div>

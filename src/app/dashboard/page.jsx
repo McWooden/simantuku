@@ -47,7 +47,8 @@ export default async function DashboardPage() {
     .select(`
       *,
       atasan:employees!atasan_id(id, name, nip, position),
-      pejabat:employees!pejabat_id(id, name, nip, position)
+      pejabat:employees!pejabat_id(id, name, nip, position),
+      breakdowns:leave_quota_breakdown(quota_year, days_deducted)
     `)
     .eq('employee_id', employee.id)
     .order('created_at', { ascending: false })
@@ -183,29 +184,41 @@ export default async function DashboardPage() {
                   key={leave.id} 
                   className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex items-center justify-between p-5 flex-col sm:flex-row gap-4"
                 >
-                  <div className="flex items-start gap-4 w-full sm:w-auto">
-                    <div className="p-2 rounded-full mt-0.5 bg-slate-50 text-slate-500 border border-slate-100">
+                  <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
+                    <div className="p-2 rounded-full mt-0.5 bg-slate-50 text-slate-500 border border-slate-100 shrink-0">
                       {isAcc ? <CheckCircle2 className="w-4 h-4" /> : 
                        isRejected ? <AlertCircle className="w-4 h-4" /> : 
                        <Clock className="w-4 h-4" />}
                     </div>
                     
-                    <div>
-                      <h4 className="font-semibold text-base mb-0.5 text-slate-800">{leave.category}</h4>
-                      <DateDetailsModal dates={leave.dates}>
-                        <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5">
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          {leave.dates && leave.dates.length > 0 ? (
-                            leave.dates.length === 1 ? (
-                              format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/dashboard/requests/${leave.id}`} className="hover:underline text-slate-800">
+                        <h4 className="font-semibold text-base mb-0.5">{leave.category}</h4>
+                      </Link>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                        <DateDetailsModal dates={leave.dates}>
+                          <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5 whitespace-nowrap">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            {leave.dates && leave.dates.length > 0 ? (
+                              leave.dates.length === 1 ? (
+                                format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
+                              ) : (
+                                `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
+                              )
                             ) : (
-                              `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
-                            )
-                          ) : (
-                            format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
-                          )}
-                        </button>
-                      </DateDetailsModal>
+                              format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
+                            )}
+                          </button>
+                        </DateDetailsModal>
+                        {leave.note && (
+                          <>
+                            <span className="hidden sm:inline text-slate-300">•</span>
+                            <span className="text-sm text-slate-500 truncate" title={leave.note}>
+                              {leave.note}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -228,9 +241,9 @@ export default async function DashboardPage() {
                         atasan: leave.atasan,
                         pejabat: leave.pejabat,
                         quotas: {
-                           sisaN: buckets.find(b => b.year === currentYear)?.remaining || 0,
-                           sisaN1: buckets.find(b => b.year === currentYear - 1)?.remaining || 0,
-                           sisaN2: buckets.find(b => b.year === currentYear - 2)?.remaining || 0
+                           sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear)?.days_deducted || 0),
+                           sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear - 1)?.days_deducted || 0),
+                           sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear - 2)?.days_deducted || 0)
                         }
                       }}
                       size="sm" 

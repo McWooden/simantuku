@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive } from 'lucide-react'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()
@@ -90,6 +90,9 @@ export function Sidebar({ role, employee, avatarUrl }) {
                 </NavLink>
                 <NavLink href="/admin/requests" icon={Inbox} onClick={() => setIsOpen(false)}>
                   Kotak Masuk Cuti
+                </NavLink>
+                <NavLink href="/admin/manage" icon={FolderArchive} onClick={() => setIsOpen(false)}>
+                  Storage
                 </NavLink>
                 <NavLink href="/admin/employees" icon={Users} onClick={() => setIsOpen(false)}>
                   Pegawai

@@ -303,3 +303,108 @@ export async function deleteLeaveAction(requestId) {
   revalidatePath('/admin/requests')
   return { success: true }
 }
+
+export async function adminDeleteLeaveAction(requestId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authorized" }
+
+  const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
+  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+
+  // Get request to check category
+  const { data: request, error: fetchErr } = await supabase
+    .from('cuti')
+    .select('*')
+    .eq('id', requestId)
+    .single()
+
+  if (fetchErr || !request) return { error: "Request not found" }
+  
+  // Refund Quota if Tahunan and the request was somehow using quota 
+  // (usually rejected requests already refunded, but if pending, refund it)
+  if (request.category === 'Tahunan' && request.status !== 'ditolak') {
+    const { data: breakdowns } = await supabase
+      .from('leave_quota_breakdown')
+      .select('*')
+      .eq('leave_id', requestId)
+      
+    if (breakdowns && breakdowns.length > 0) {
+      for (const bd of breakdowns) {
+        const { data: bucket } = await supabase
+          .from('leave_quota')
+          .select('id, used_days')
+          .eq('employee_id', request.employee_id)
+          .eq('year', bd.quota_year)
+          .single()
+          
+        if (bucket) {
+          await supabase
+            .from('leave_quota')
+            .update({ used_days: Math.max(0, bucket.used_days - bd.days_deducted) })
+            .eq('id', bucket.id)
+        }
+      }
+      await supabase.from('leave_quota_breakdown').delete().eq('leave_id', requestId)
+    }
+  }
+
+  // Delete the record
+  const { error } = await supabase.from('cuti').delete().eq('id', requestId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/requests')
+  revalidatePath('/admin/manage/attachments') // Attachments list might have changed
+  return { success: true }
+}
+
+export async function bulkDeleteRejectedRequestsAction() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authorized" }
+
+  const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
+  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+
+  // 1. Fetch all rejected requests
+  const { data: rejectedRequests, error: fetchErr } = await supabase
+    .from('cuti')
+    .select('id, attachment_url')
+    .eq('status', 'ditolak')
+
+  if (fetchErr) return { error: fetchErr.message }
+  if (!rejectedRequests || rejectedRequests.length === 0) {
+    return { success: true, message: "Tidak ada permintaan yang ditolak untuk dihapus." }
+  }
+
+  // 2. Extract attachments to delete
+  const attachmentsToDelete = rejectedRequests
+    .map(r => r.attachment_url)
+    .filter(url => url !== null && url !== '')
+
+  // 3. Delete attachments from storage
+  if (attachmentsToDelete.length > 0) {
+    const { error: storageErr } = await supabase.storage
+      .from('leave_attachments')
+      .remove(attachmentsToDelete)
+    
+    if (storageErr) {
+      console.error("Error deleting bulk attachments:", storageErr)
+      // Continue anyway to delete the DB records
+    }
+  }
+
+  // 4. Delete the database records
+  const { error: deleteErr } = await supabase
+    .from('cuti')
+    .delete()
+    .eq('status', 'ditolak')
+
+  if (deleteErr) return { error: deleteErr.message }
+
+  revalidatePath('/admin/requests')
+  revalidatePath('/admin/manage/attachments')
+  return { success: true, count: rejectedRequests.length }
+}
+
+
