@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
@@ -80,81 +81,133 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Advanced Quota Card */}
-        <Card className="col-span-1 border-none shadow-md bg-white overflow-hidden relative group hover:shadow-xl transition-all duration-300">
+        <Card className="col-span-1 border-none shadow-md bg-white overflow-hidden relative group hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
           <div className="absolute right-0 top-0 w-24 h-24 bg-primary/5 rounded-bl-full transition-transform group-hover:scale-110" />
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Kuota Cuti Tahunan</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-primary tracking-tighter">
-                    {remainingQuota}
-                  </span>
-                  <span className="text-lg font-medium text-muted-foreground mb-1">
-                    / {totalAllowed}
-                  </span>
-                </div>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                <CalendarDays className="w-6 h-6" />
-              </div>
-            </div>
-            
-            <div className="mt-6 w-full bg-secondary rounded-full h-2.5 overflow-hidden">
-              <div 
-                className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Rincian Kuota</p>
-              {buckets.slice().reverse().map((bucket) => (
-                <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-slate-700">
-                      Tahun {bucket.year} 
-                      {bucket.year === currentYear ? (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
-                      ) : bucket.year === currentYear - 1 ? (
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Tahun Lalu</span>
-                      ) : bucket.year === currentYear - 2 ? (
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
-                      ) : null}
+          <CardContent className="p-6 relative flex-1 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Kuota Cuti Tahunan</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-black text-primary tracking-tighter">
+                      {remainingQuota}
                     </span>
-                    {bucket.expires_at && (
-                      <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <span className="font-bold text-slate-900">{bucket.remaining}</span>
-                    <span className="text-slate-400"> / {bucket.total} d</span>
+                    <span className="text-lg font-medium text-muted-foreground mb-1">
+                      / {totalAllowed}
+                    </span>
                   </div>
                 </div>
-              ))}
+                <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                  <CalendarDays className="w-6 h-6" />
+                </div>
+              </div>
+              
+              <div className="mt-6 w-full bg-secondary rounded-full h-2.5 overflow-hidden">
+                <div 
+                  className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Rincian Kuota</p>
+                {buckets.slice().reverse().map((bucket) => (
+                  <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-700">
+                        Tahun {bucket.year} 
+                        {bucket.year === currentYear ? (
+                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
+                        ) : bucket.year === currentYear - 1 ? (
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Tahun Lalu</span>
+                        ) : bucket.year === currentYear - 2 ? (
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
+                        ) : null}
+                      </span>
+                      {bucket.expires_at && (
+                        <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-900">{bucket.remaining}</span>
+                      <span className="text-slate-400"> / {bucket.total} d</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground mt-4 italic">
+                * Kuota diprioritaskan menggunakan hari yang kedaluwarsa lebih awal.
+              </p>
             </div>
 
-            <p className="text-[10px] text-muted-foreground mt-4 italic">
-              * Kuota diprioritaskan menggunakan hari yang kedaluwarsa lebih awal.
-            </p>
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <Button className="w-full rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.2)] hover:shadow-[0_0_20px_rgba(var(--primary),0.4)] transition-all" asChild>
+                <Link href="/dashboard/form">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Ajukan Cuti
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Action Panel */}
-        <Card className="md:col-span-2 border-none shadow-md bg-white hover:shadow-xl transition-all duration-300 flex flex-col justify-center relative overflow-hidden group">
+        {/* Attribute Panel (Detail Pegawai) */}
+        <Card className="md:col-span-2 border-none shadow-md bg-white hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
           <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-violet-100 rounded-full blur-2xl transition-transform group-hover:scale-125" />
-          <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6 relative z-10">
-            <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h3 className="text-xl font-bold">Berencana mengambil cuti?</h3>
-              <p className="text-sm text-muted-foreground">
-                Ajukan permintaan cuti baru. Sistem kami akan memproses secara otomatis dan memberi tahu administrator Anda.
-              </p>
+          <CardContent className="p-6 relative z-10 space-y-6">
+            <div className="flex items-center justify-between border-b pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Detail Pegawai</h3>
+                <p className="text-xs text-muted-foreground">Informasi lengkap profil resmi Anda.</p>
+              </div>
             </div>
-            <Button size="lg" className="rounded-full shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] transition-all px-8" asChild>
-              <Link href="/dashboard/form">
-                <PlusCircle className="mr-2 h-5 w-5" /> Ajukan Cuti
-              </Link>
-            </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Nama Lengkap</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.name}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Email Resmi</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.email}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Jabatan</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.position || '-'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Unit Kerja</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.unit || '-'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">NIP</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.nip || '-'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Nomor Telepon</span>
+                <span className="font-semibold text-slate-800 block mt-1">{employee.phone_number || '-'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Tanggal Mulai Kerja</span>
+                <span className="font-semibold text-slate-800 block mt-1">
+                  {employee.start_date ? format(new Date(employee.start_date), 'd MMMM yyyy', { locale: id }) : '-'}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground block">Atasan Langsung / Atas Atasan Langsung</span>
+                <span className="font-semibold text-slate-800 block mt-1">
+                  {employee.is_superior ? 'Ya' : 'Tidak'}
+                </span>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <span className="text-xs text-muted-foreground block">Peran Sistem</span>
+                <div className="mt-1">
+                  <Badge variant={employee.role === 'admin' ? 'default' : 'secondary'}>
+                    {employee.role === 'admin' ? 'ADMIN' : 'PENGGUNA'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -33,7 +33,7 @@ export default async function AdminUsersPage() {
   const { data: allEmployees } = await supabase
     .from('employees')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('name', { ascending: true })
 
   // Calculate true quota for each user using the advanced bucket system
   const userStats = await Promise.all(

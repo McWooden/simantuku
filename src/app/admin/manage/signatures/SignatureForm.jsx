@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { Upload, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react'
 
 export default function SignatureForm({ employees }) {
   const [selectedUser, setSelectedUser] = useState('')
@@ -138,7 +138,9 @@ export default function SignatureForm({ employees }) {
 
         <Button type="submit" disabled={uploading || !selectedUser || !file} className="w-full">
           {uploading ? (
-            'Mengunggah...'
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengunggah...
+            </>
           ) : (
             <>
               <Upload className="mr-2 h-4 w-4" /> Unggah Tanda Tangan

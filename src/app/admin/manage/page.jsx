@@ -1,5 +1,14 @@
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function ManageIndex() {
-  redirect('/admin/manage/attachments')
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/admin/manage/attachments')
+  }, [router])
+
+  return null
 }

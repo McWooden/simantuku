@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LeaveFormPage() {
   const router = useRouter()
@@ -516,6 +516,7 @@ export default function LeaveFormPage() {
                   Batal
                 </Button>
                 <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || hasPending || checkingPending}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
                 </Button>
               </div>

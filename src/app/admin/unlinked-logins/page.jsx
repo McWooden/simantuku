@@ -12,6 +12,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 export default async function AdminUnlinkedLoginsPage() {
   const supabase = await createClient()
@@ -114,7 +115,7 @@ export default async function AdminUnlinkedLoginsPage() {
                             </option>
                           ))}
                         </select>
-                        <Button type="submit" size="sm">Tautkan</Button>
+                        <SubmitButton size="sm" loadingText="Menautkan...">Tautkan</SubmitButton>
                       </form>
                       <Button asChild size="sm" variant="outline" className="border-dashed whitespace-nowrap shrink-0">
                         <Link href={`/admin/employees/create?email=${encodeURIComponent(p.email || '')}&name=${encodeURIComponent(p.username || '')}`}>
