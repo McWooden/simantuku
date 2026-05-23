@@ -2,13 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getLeaveQuotaOverviewAction } from '@/app/actions/leaveActions'
 import Link from 'next/link'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,7 +73,7 @@ export default async function AdminUsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>NIP</TableHead>
               <TableHead>Peran</TableHead>
               <TableHead>Bergabung</TableHead>
               <TableHead>Cuti Tahunan Terpakai</TableHead>
@@ -89,7 +89,7 @@ export default async function AdminUsersPage() {
                       {u.name}
                     </Link>
                   </TableCell>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell>{u.nip ?? '-'}</TableCell>
                   <TableCell>
                     <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
                       {u.role.toUpperCase()}

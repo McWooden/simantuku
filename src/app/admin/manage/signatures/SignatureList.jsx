@@ -38,11 +38,15 @@ export default function SignatureList({ employees }) {
           
         if (files && files.some(f => f.name === 'signature.png')) {
           const emp = employees.find(e => e.id === empId)
+          const fullPath = `${empId}/signature.png`
+          const { data } = supabase.storage.from('signatures').getPublicUrl(fullPath)
+          
           sigList.push({
             employeeId: empId,
             employeeName: emp ? emp.name : 'Unknown Employee',
             employeeNip: emp ? emp.nip : '-',
-            fullPath: `${empId}/signature.png`,
+            fullPath,
+            imageUrl: data?.publicUrl,
             fileSize: files.find(f => f.name === 'signature.png')?.metadata?.size || 0
           })
         }
@@ -119,15 +123,23 @@ export default function SignatureList({ employees }) {
                   </div>
                 </div>
                 
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-slate-400 hover:text-red-600 hover:bg-red-50"
-                  onClick={() => handleDelete(sig.fullPath, sig.employeeName)}
-                  disabled={deletingId === sig.fullPath}
-                >
-                  {deletingId === sig.fullPath ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </Button>
+                <div className="flex items-center gap-4">
+                  {sig.imageUrl && (
+                    <div className="h-10 w-24 bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '6px 6px' }}>
+                      <img src={sig.imageUrl} alt="Signature Preview" className="max-h-full max-w-full object-contain drop-shadow-sm" />
+                    </div>
+                  )}
+
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => handleDelete(sig.fullPath, sig.employeeName)}
+                    disabled={deletingId === sig.fullPath}
+                  >
+                    {deletingId === sig.fullPath ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
             ))
           )}
