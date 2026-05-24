@@ -116,14 +116,14 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
       email: formData.get('email')?.trim() || null,
       role: formData.get('role') || 'user',
       start_date: formData.get('start_date') || null,
-      position: formData.get('position') || null,
-      unit: formData.get('unit') || null,
+      position: formData.get('position')?.trim() || null,
+      unit: formData.get('unit')?.trim() || null,
       nip: formData.get('nip')?.trim() || null,
       phone_number: formData.get('phone_number')?.trim() || null,
       is_superior: formData.get('is_superior') === 'true'
     }
-    if (payload.unit === 'none') payload.unit = null
-    if (payload.position === 'none') payload.position = null
+    if (payload.unit === 'none' || payload.unit === '') payload.unit = null
+    if (payload.position === 'none' || payload.position === '') payload.position = null
 
     const supabaseServer = await createClient()
     let error
@@ -230,32 +230,36 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
 
             <div className="space-y-2">
               <Label htmlFor="position">Jabatan</Label>
-              <Select name="position" defaultValue={defaultPosition}>
-                <SelectTrigger id="position">
-                  <SelectValue placeholder="Pilih jabatan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Kosong --</SelectItem>
-                  {POSITIONS.map(pos => (
-                    <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="position"
+                name="position"
+                list="positions-list"
+                defaultValue={defaultPosition === 'none' ? '' : defaultPosition}
+                placeholder="Ketik atau pilih jabatan..."
+                className="bg-white"
+              />
+              <datalist id="positions-list">
+                {POSITIONS.map(pos => (
+                  <option key={pos} value={pos} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="unit">Unit Kerja</Label>
-              <Select name="unit" defaultValue={defaultUnit}>
-                <SelectTrigger id="unit">
-                  <SelectValue placeholder="Pilih unit kerja" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- Kosong --</SelectItem>
-                  {UNITS.map(u => (
-                    <SelectItem key={u} value={u}>{u}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="unit"
+                name="unit"
+                list="units-list"
+                defaultValue={defaultUnit === 'none' ? '' : defaultUnit}
+                placeholder="Ketik atau pilih unit kerja..."
+                className="bg-white"
+              />
+              <datalist id="units-list">
+                {UNITS.map(u => (
+                  <option key={u} value={u} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
