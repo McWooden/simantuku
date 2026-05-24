@@ -69,23 +69,36 @@ async function ensureAndCapQuotas(supabase, employeeId, currentYear) {
 }
 
 export async function submitLeaveAction(payload) {
-  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl } = payload;
+  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
 
-  const { data: employee } = await supabase.from('employees').select('id').eq('auth_id', user.id).single()
+  const { data: employee } = await supabase.from('employees').select('id, role').eq('auth_id', user.id).single()
   if (!employee) return { error: "No employee mapped" }
 
-  // Enforce "One Pending Request" rule
-  const { count: pendingCount } = await supabase
-    .from('cuti')
-    .select('*', { count: 'exact', head: true })
-    .eq('employee_id', employee.id)
-    .eq('status', 'pending')
+  const isAdmin = employee.role === 'admin';
+  let targetEmployeeId = employee.id;
+  let status = 'pending';
 
-  if (pendingCount > 0) {
-    return { error: "You already have a pending leave request. Please wait for it to be processed or delete it before submitting another." }
+  if (isAdmin) {
+    status = 'acc';
+    if (onBehalfEmployeeId) {
+      targetEmployeeId = onBehalfEmployeeId;
+    }
+  }
+
+  // Enforce "One Pending Request" rule only for pending statuses
+  if (status === 'pending') {
+    const { count: pendingCount } = await supabase
+      .from('cuti')
+      .select('*', { count: 'exact', head: true })
+      .eq('employee_id', targetEmployeeId)
+      .eq('status', 'pending')
+
+    if (pendingCount > 0) {
+      return { error: "You already have a pending leave request. Please wait for it to be processed or delete it before submitting another." }
+    }
   }
 
   const daysRequested = dates.length;
@@ -93,7 +106,7 @@ export async function submitLeaveAction(payload) {
 
   if (category === 'Tahunan') {
     const currentYear = new Date().getFullYear();
-    const buckets = await ensureAndCapQuotas(supabase, employee.id, currentYear)
+    const buckets = await ensureAndCapQuotas(supabase, targetEmployeeId, currentYear)
     
     let totalAvailable = 0;
     const actionableBuckets = [];
@@ -112,7 +125,7 @@ export async function submitLeaveAction(payload) {
 
     // Provision request
     const { data: cutiRow, error: cutiErr } = await supabase.from('cuti').insert({
-      employee_id: employee.id,
+      employee_id: targetEmployeeId,
       category,
       dates,
       note,
@@ -121,7 +134,7 @@ export async function submitLeaveAction(payload) {
       atasan_id: atasanId,
       pejabat_id: pejabatId,
       attachment_url: attachmentUrl,
-      status: 'pending'
+      status: status
     }).select('id').single()
 
     if (cutiErr) return { error: cutiErr.message }
@@ -150,7 +163,7 @@ export async function submitLeaveAction(payload) {
   } else {
     // Other categories process independently
     const { error: cutiErr } = await supabase.from('cuti').insert({
-      employee_id: employee.id,
+      employee_id: targetEmployeeId,
       category,
       dates,
       note,
@@ -159,7 +172,7 @@ export async function submitLeaveAction(payload) {
       atasan_id: atasanId,
       pejabat_id: pejabatId,
       attachment_url: attachmentUrl,
-      status: 'pending'
+      status: status
     })
     if (cutiErr) return { error: cutiErr.message }
   }

@@ -50,6 +50,11 @@ export default function LeaveFormPage() {
   const [note, setNote] = useState('')
   const [recipientType, setRecipientType] = useState('Camat')
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [employeesList, setEmployeesList] = useState([])
+  const [selectedOnBehalfId, setSelectedOnBehalfId] = useState('')
+  const [loggedInEmployeeId, setLoggedInEmployeeId] = useState('')
+
   // Debounce dates for PDF preview
   useEffect(() => {
     setIsDatesApplying(true)
@@ -68,7 +73,7 @@ export default function LeaveFormPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number, start_date').eq('auth_id', user.id).single()
+          const { data: employee } = await supabase.from('employees').select('id, name, nip, unit, position, phone_number, start_date, role').eq('auth_id', user.id).single()
           if (employee) {
             setEmployeeId(employee.id)
             setEmployeeName(employee.name)
@@ -77,6 +82,8 @@ export default function LeaveFormPage() {
             setEmployeePosition(employee.position || '')
             setEmployeePhone(employee.phone_number || '')
             setEmployeeStartDate(employee.start_date || null)
+            setLoggedInEmployeeId(employee.id)
+
             const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
             setHasPending(count > 0)
 
@@ -95,6 +102,18 @@ export default function LeaveFormPage() {
             const sisaN1 = b.find(x => x.year === currentYear - 1)?.remaining || 0
             const sisaN2 = b.find(x => x.year === currentYear - 2)?.remaining || 0
             setQuotas({ sisaN, sisaN1, sisaN2 })
+
+            if (employee.role === 'admin') {
+              setIsAdmin(true)
+              setSelectedOnBehalfId(employee.id)
+              const { data: allEmployees, error: empError } = await supabase
+                .from('employees')
+                .select('id, name, nip, unit, position, phone_number, start_date')
+                .order('name', { ascending: true })
+              if (allEmployees && !empError) {
+                setEmployeesList(allEmployees)
+              }
+            }
           }
         }
       } catch (e) {
@@ -105,6 +124,39 @@ export default function LeaveFormPage() {
     }
     checkPending()
   }, [])
+
+  const handleSelectEmployee = async (empId) => {
+    const emp = employeesList.find(e => e.id === empId)
+    if (!emp) return
+
+    setSelectedOnBehalfId(empId)
+    setEmployeeId(emp.id)
+    setEmployeeName(emp.name)
+    setEmployeeNip(emp.nip || '')
+    setEmployeeUnit(emp.unit || '')
+    setEmployeePosition(emp.position || '')
+    setEmployeePhone(emp.phone_number || '')
+    setEmployeeStartDate(emp.start_date || null)
+
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      
+      const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', emp.id).eq('status', 'pending')
+      setHasPending(count > 0)
+
+      const { getLeaveQuotaOverviewAction } = await import('@/app/actions/leaveActions')
+      const overview = await getLeaveQuotaOverviewAction(emp.id)
+      const currentYear = new Date().getFullYear()
+      const b = overview.buckets || []
+      const sisaN = b.find(x => x.year === currentYear)?.remaining || 0
+      const sisaN1 = b.find(x => x.year === currentYear - 1)?.remaining || 0
+      const sisaN2 = b.find(x => x.year === currentYear - 2)?.remaining || 0
+      setQuotas({ sisaN, sisaN1, sisaN2 })
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const [showPreview, setShowPreview] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
@@ -225,7 +277,8 @@ export default function LeaveFormPage() {
         recipientType,
         atasanId,
         pejabatId,
-        attachmentUrl
+        attachmentUrl,
+        onBehalfEmployeeId: isAdmin ? selectedOnBehalfId : null
       }
 
       const res = await submitLeaveAction(payload);
@@ -261,7 +314,7 @@ export default function LeaveFormPage() {
             </Button>
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {hasPending && (
+            {hasPending && !isAdmin && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl flex gap-3 text-amber-800 shadow-sm mb-6">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
@@ -273,9 +326,36 @@ export default function LeaveFormPage() {
               </div>
             )}
 
-            <div className={`space-y-6 ${hasPending ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            <div className={`space-y-6 ${(hasPending && !isAdmin) ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
 
               <div className="flex flex-col space-y-12 pt-2">
+                {isAdmin && (
+                  <div className="space-y-4 bg-indigo-50/40 p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300 w-full overflow-hidden">
+                    <h2 className="text-xl font-bold text-indigo-950 flex items-center gap-2 border-b border-indigo-100/60 pb-3">
+                      <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span> Ajukan atas Nama Pegawai (Admin)
+                    </h2>
+                    <div className="space-y-2 w-full max-w-md">
+                      <Label htmlFor="onBehalf" className="text-indigo-900 font-semibold">Pilih Pegawai</Label>
+                      <Select value={selectedOnBehalfId || employeeId} onValueChange={handleSelectEmployee}>
+                        <SelectTrigger id="onBehalf" className="h-11 bg-white border-indigo-200 w-full overflow-hidden">
+                          <SelectValue placeholder="Pilih Pegawai" className="truncate" />
+                        </SelectTrigger>
+                        <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                          {employeesList.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              <span className="truncate block max-w-[220px] xs:max-w-[280px] sm:max-w-sm md:max-w-md">
+                                {emp.name} {emp.nip ? `(NIP: ${emp.nip})` : ''} {emp.id === loggedInEmployeeId ? ' — (Diri Sendiri)' : ''}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-indigo-700/80 font-medium">
+                        *Sebagai Admin, Anda dapat mengirim formulir ini atas nama pegawai terpilih. Status pengajuan akan langsung disetujui (ACC).
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Section 1: Informasi Dasar */}
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 border-b border-slate-200 pb-3">
@@ -515,9 +595,9 @@ export default function LeaveFormPage() {
                 <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
                   Batal
                 </Button>
-                <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || hasPending || checkingPending}>
+                <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || (hasPending && !isAdmin) || checkingPending}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
+                  {loading ? 'Mengirim...' : (hasPending && !isAdmin) ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
                 </Button>
               </div>
 
