@@ -124,7 +124,7 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
       .map(d => new Date(d))
       .sort((a, b) => a.getTime() - b.getTime())
 
-    const countText = `${sortedDates.length} hari`
+    const countText = `${sortedDates.length} hari kerja`
 
     if (currentCoords.daysCount) {
       firstPage.drawText(countText, { x: currentCoords.daysCount.x, y: currentCoords.daysCount.y, ...drawOpts })

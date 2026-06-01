@@ -204,8 +204,8 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
               <Input
                 id="nip"
                 name="nip"
-                placeholder="Maksimal 18 karakter NIP"
-                maxLength={18}
+                placeholder="Maksimal 19 karakter NIP"
+                maxLength={19}
                 defaultValue={defaultNip}
                 required
                 className={hasNipError ? 'border-destructive focus-visible:ring-destructive' : ''}
