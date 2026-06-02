@@ -36,6 +36,14 @@ export default function LeaveFormPage() {
   const [employeeStartDate, setEmployeeStartDate] = useState(null)
   const [address, setAddress] = useState('')
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState({
+    category: false,
+    dates: false,
+    note: false,
+    address: false,
+    atasanId: false,
+    pejabatId: false
+  })
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
   const [customCoords, setCustomCoords] = useState(COORDS)
   const [superiors, setSuperiors] = useState([])
@@ -87,7 +95,11 @@ export default function LeaveFormPage() {
             const { count } = await supabase.from('cuti').select('*', { count: 'exact', head: true }).eq('employee_id', employee.id).eq('status', 'pending')
             setHasPending(count > 0)
 
-            const { data: superiorData, error: superiorError } = await supabase.from('employees').select('id, name, nip, position').eq('is_superior', true)
+            const { data: superiorData, error: superiorError } = await supabase
+              .from('employees')
+              .select('id, name, nip, position')
+              .eq('is_superior', true)
+              .order('name', { ascending: true })
             if (superiorData && !superiorError) {
               setSuperiors(superiorData)
             } else {
@@ -203,37 +215,47 @@ export default function LeaveFormPage() {
     setCategory(val)
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e, statusToSubmit = 'pending') => {
+    if (e) e.preventDefault()
     setLoading(true)
     setError('')
 
+    const newErrors = {
+      category: !category,
+      dates: dates.length === 0,
+      note: !note || !note.trim(),
+      address: !address || !address.trim(),
+      atasanId: !atasanId,
+      pejabatId: !pejabatId
+    }
+    setErrors(newErrors)
+
     try {
-      if (!category) {
+      if (newErrors.category) {
         setError('Harap pilih kategori cuti.')
         setLoading(false)
         return
       }
 
-      if (dates.length === 0) {
+      if (newErrors.dates) {
         setError('Harap pilih minimal satu tanggal cuti.')
         setLoading(false)
         return
       }
 
-      if (!note || !note.trim()) {
+      if (newErrors.note) {
         setError('Harap isi Alasan / Catatan Cuti.')
         setLoading(false)
         return
       }
 
-      if (!address || !address.trim()) {
+      if (newErrors.address) {
         setError('Harap isi Alamat Selama Cuti.')
         setLoading(false)
         return
       }
 
-      if (!atasanId || !pejabatId) {
+      if (newErrors.atasanId || newErrors.pejabatId) {
         setError('Harap pilih Atasan Langsung dan Pejabat Berwenang.')
         setLoading(false)
         return
@@ -278,7 +300,8 @@ export default function LeaveFormPage() {
         atasanId,
         pejabatId,
         attachmentUrl,
-        onBehalfEmployeeId: isAdmin ? selectedOnBehalfId : null
+        onBehalfEmployeeId: isAdmin ? selectedOnBehalfId : null,
+        status: isAdmin ? statusToSubmit : 'pending'
       }
 
       const res = await submitLeaveAction(payload);
@@ -366,7 +389,7 @@ export default function LeaveFormPage() {
                     <div className="space-y-3 max-w-md">
                       <Label htmlFor="category" className="text-slate-600 font-semibold">Kategori Cuti</Label>
                       <Select value={category} onValueChange={handleCategoryChange}>
-                        <SelectTrigger id="category" className="h-11">
+                        <SelectTrigger id="category" className={`h-11 ${errors.category ? 'border-red-500 ring-red-500' : ''}`}>
                           <SelectValue placeholder="Pilih kategori" />
                         </SelectTrigger>
                         <SelectContent>
@@ -454,7 +477,7 @@ export default function LeaveFormPage() {
                   </div>
 
                   <div className="flex flex-col items-start">
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 inline-block">
+                    <div className={`bg-white rounded-xl border ${errors.dates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'} shadow-sm p-3 inline-block transition-colors`}>
                       <Calendar
                         mode="multiple"
                         selected={dates}
@@ -468,6 +491,16 @@ export default function LeaveFormPage() {
                         }}
                       />
                     </div>
+                    
+                    <div className="mt-3 text-xs text-slate-500 font-medium space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100/80 animate-in fade-in duration-300">
+                      <span className="block text-slate-700 font-semibold mb-1">Saldo Kuota Cuti Anda:</span>
+                      <div className="flex flex-col xs:flex-row gap-2 xs:gap-5">
+                        <span>Tahun Ini ({new Date().getFullYear()}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN} hari</strong></span>
+                        <span>Tahun Lalu ({new Date().getFullYear() - 1}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN1} hari</strong></span>
+                        <span>2 Tahun Lalu ({new Date().getFullYear() - 2}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN2} hari</strong></span>
+                      </div>
+                    </div>
+
                     {dates.length === 0 && (
                       <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
                         Harap pilih setidaknya satu tanggal dari kalender.
@@ -502,6 +535,7 @@ export default function LeaveFormPage() {
                         value={address}
                         onChange={setAddress}
                         maxLength={52}
+                        hasError={errors.address}
                       />
                       <DebouncedTextarea
                         id="note"
@@ -510,14 +544,15 @@ export default function LeaveFormPage() {
                         value={note}
                         onChange={setNote}
                         maxLength={247}
+                        hasError={errors.note}
                       />
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-slate-100">
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
+                      <div className="flex flex-col gap-6 max-w-md w-full">
+                        <div className="space-y-3 w-full">
                           <Label className="text-slate-600 font-semibold">Tujuan Surat Kepada Yth.</Label>
-                          <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 max-w-sm">
+                          <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full">
                             <Label className="flex items-center gap-2 font-medium cursor-pointer">
                               <input
                                 type="radio"
@@ -543,36 +578,45 @@ export default function LeaveFormPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="space-y-2">
+                        <div className="space-y-4 w-full">
+                          <div className="space-y-2 w-full">
                             <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
                             <Select value={atasanId} onValueChange={setAtasanId}>
-                              <SelectTrigger className="h-11 bg-white">
-                                <SelectValue placeholder="Pilih Atasan Langsung" />
+                              <SelectTrigger className={`h-11 bg-white !w-full max-w-full overflow-hidden truncate ${errors.atasanId ? 'border-red-500 ring-red-500' : ''}`}>
+                                <SelectValue placeholder="Pilih Atasan Langsung" className="truncate block max-w-[calc(100%-20px)]" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-3rem)] sm:max-w-md">
                                 {superiors.length === 0 ? (
                                   <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
                                 ) : (
                                   superiors.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                    <SelectItem key={s.id} value={s.id}>
+                                      <span className="truncate block max-w-[280px] sm:max-w-sm md:max-w-md">
+                                        {s.name} - {s.position}
+                                      </span>
+                                    </SelectItem>
                                   ))
                                 )}
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="space-y-2">
+                          
+                          <div className="space-y-2 w-full">
                             <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
                             <Select value={pejabatId} onValueChange={setPejabatId}>
-                              <SelectTrigger className="h-11 bg-white">
-                                <SelectValue placeholder="Pilih Pejabat Berwenang" />
+                              <SelectTrigger className={`h-11 bg-white !w-full max-w-full overflow-hidden truncate ${errors.pejabatId ? 'border-red-500 ring-red-500' : ''}`}>
+                                <SelectValue placeholder="Pilih Pejabat Berwenang" className="truncate block max-w-[calc(100%-20px)]" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-3rem)] sm:max-w-md">
                                 {superiors.length === 0 ? (
                                   <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
                                 ) : (
                                   superiors.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name} - {s.position}</SelectItem>
+                                    <SelectItem key={s.id} value={s.id}>
+                                      <span className="truncate block max-w-[280px] sm:max-w-sm md:max-w-md">
+                                        {s.name} - {s.position}
+                                      </span>
+                                    </SelectItem>
                                   ))
                                 )}
                               </SelectContent>
@@ -595,10 +639,39 @@ export default function LeaveFormPage() {
                 <Button variant="ghost" type="button" onClick={() => router.push('/dashboard')}>
                   Batal
                 </Button>
-                <Button type="submit" size="lg" className="min-w-[150px] shadow-sm rounded-full" disabled={loading || (hasPending && !isAdmin) || checkingPending}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Mengirim...' : (hasPending && !isAdmin) ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
-                </Button>
+                {isAdmin ? (
+                  <>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="lg" 
+                      className="min-w-[150px] shadow-sm rounded-full" 
+                      disabled={loading || checkingPending}
+                      onClick={() => handleSubmit(null, 'pending')}
+                    >
+                      Kirim Permintaan
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="lg" 
+                      className="min-w-[180px] shadow-sm rounded-full bg-primary hover:bg-primary/95 text-white" 
+                      disabled={loading || checkingPending}
+                      onClick={() => handleSubmit(null, 'acc')}
+                    >
+                      Kirim Permintaan & Setujui
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="min-w-[150px] shadow-sm rounded-full" 
+                    disabled={loading || hasPending || checkingPending}
+                  >
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
+                  </Button>
+                )}
               </div>
 
             </div>
@@ -644,7 +717,7 @@ export default function LeaveFormPage() {
 }
 
 
-const DebouncedTextarea = memo(function DebouncedTextarea({ id, label, placeholder, value, onChange, maxLength, tip }) {
+const DebouncedTextarea = memo(function DebouncedTextarea({ id, label, placeholder, value, onChange, maxLength, tip, hasError }) {
   const [innerValue, setInnerValue] = useState(value)
   const [status, setStatus] = useState('idle')
 
@@ -690,6 +763,7 @@ const DebouncedTextarea = memo(function DebouncedTextarea({ id, label, placehold
         value={innerValue}
         onChange={handleChange}
         maxLength={maxLength}
+        className={hasError ? 'border-red-500 ring-red-500' : ''}
       />
       {tip && (
         <p className="text-[10px] text-muted-foreground italic">

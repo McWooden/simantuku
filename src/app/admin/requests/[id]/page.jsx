@@ -17,7 +17,7 @@ export default async function RequestDetailPage({ params }) {
 
   const { data: adminCheck } = await supabase
     .from('employees')
-    .select('role')
+    .select('id, role')
     .eq('auth_id', user.id)
     .single()
 
@@ -36,9 +36,6 @@ export default async function RequestDetailPage({ params }) {
       ),
       pejabat:employees!pejabat_id (
         name, position
-      ),
-      breakdowns:leave_quota_breakdown (
-        quota_year, days_deducted
       )
     `)
     .eq('id', id)
@@ -71,7 +68,11 @@ export default async function RequestDetailPage({ params }) {
           </div>
         </div>
         {request.status === 'pending' && (
-          <RequestActions requestId={request.id} redirectUrl="/admin/requests" />
+          <RequestActions 
+            request={request} 
+            currentEmployeeId={adminCheck.id} 
+            redirectUrl="/admin/requests" 
+          />
         )}
       </div>
 

@@ -43,7 +43,7 @@ export const COORDS = {
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ employeeId, name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate, status }) {
+export async function generateLeavePDF({ employeeId, name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate, status, isAtasanApproved, isPejabatApproved }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -72,12 +72,12 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
       if (data && !error) signatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
     }
 
-    if (atasan?.id && status === 'acc') {
+    if (atasan?.id && isAtasanApproved) {
       const { data, error } = await supabase.storage.from('signatures').download(`${atasan.id}/signature.png`);
       if (data && !error) atasanSignatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
     }
 
-    if (pejabat?.id && status === 'acc') {
+    if (pejabat?.id && isPejabatApproved) {
       const { data, error } = await supabase.storage.from('signatures').download(`${pejabat.id}/signature.png`);
       if (data && !error) pejabatSignatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
     }

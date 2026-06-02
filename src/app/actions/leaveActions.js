@@ -3,73 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Ensures necessary buckets exist and lazy-caps older buckets
-async function ensureAndCapQuotas(supabase, employeeId, currentYear) {
-  // 1. Get employee start date to know how far back we can grant quotas
-  const { data: employee } = await supabase
-    .from('employees')
-    .select('start_date')
-    .eq('id', employeeId)
-    .single()
-  
-  const startYear = employee?.start_date ? new Date(employee.start_date).getFullYear() : currentYear
-
-  // 2. Fetch existing buckets
-  const { data: allBuckets } = await supabase
-    .from('leave_quota')
-    .select('*')
-    .eq('employee_id', employeeId)
-  
-  const existingYears = allBuckets?.map(b => b.year) || []
-
-  // 3. Ensure buckets exist for the last 3 years (if employed)
-  const yearsToEnsure = [currentYear, currentYear - 1, currentYear - 2].filter(y => y >= startYear)
-  
-  for (const year of yearsToEnsure) {
-    if (!existingYears.includes(year)) {
-      const isCurrent = year === currentYear;
-      const expiresAt = new Date(Date.UTC(year + 2, 11, 31, 23, 59, 59)).toISOString()
-      
-      await supabase.from('leave_quota').insert({
-        employee_id: employeeId,
-        year: year,
-        total_days: isCurrent ? 12 : 6, // New years get 12, historical carryover markers get max 6
-        used_days: 0,
-        is_capped: !isCurrent, // Historical ones are already "capped" at 6
-        expires_at: expiresAt
-      })
-    }
-  }
-
-  // 4. Lazy-evaluate carryover limits for any older buckets that weren't capped yet
-  if (allBuckets) {
-    for (const bucket of allBuckets) {
-      if (bucket.year < currentYear && !bucket.is_capped) {
-        const remaining = bucket.total_days - bucket.used_days;
-        // Cap carryover directly
-        const carriedOver = Math.max(0, Math.min(remaining, 6)); 
-        const newTotal = bucket.used_days + carriedOver;
-        
-        await supabase.from('leave_quota')
-          .update({ total_days: newTotal, is_capped: true })
-          .eq('id', bucket.id)
-      }
-    }
-  }
-
-  // 5. Fetch resulting valid buckets (n-2 to n)
-  const { data: finalBuckets } = await supabase
-    .from('leave_quota')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .gte('year', currentYear - 2)
-    .order('year', { ascending: true }) // Oldest first guarantees priority deduction
-
-  return finalBuckets || [];
-}
-
 export async function submitLeaveAction(payload) {
-  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId } = payload;
+  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId, status: clientStatus } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
@@ -82,7 +17,7 @@ export async function submitLeaveAction(payload) {
   let status = 'pending';
 
   if (isAdmin) {
-    status = 'acc';
+    status = clientStatus || 'acc';
     if (onBehalfEmployeeId) {
       targetEmployeeId = onBehalfEmployeeId;
     }
@@ -105,77 +40,31 @@ export async function submitLeaveAction(payload) {
   if (daysRequested === 0) return { error: "No dates selected" }
 
   if (category === 'Tahunan') {
-    const currentYear = new Date().getFullYear();
-    const buckets = await ensureAndCapQuotas(supabase, targetEmployeeId, currentYear)
-    
-    let totalAvailable = 0;
-    const actionableBuckets = [];
-    
-    for (const b of buckets) {
-      const remaining = b.total_days - b.used_days;
-      if (remaining > 0) {
-        totalAvailable += remaining;
-        actionableBuckets.push({ ...b, remaining });
-      }
+    // 2. Cross-year validation (enforces same calendar year)
+    const years = new Set(dates.map(d => new Date(d).getFullYear()))
+    if (years.size > 1) {
+      return { error: "Semua tanggal cuti harus berada dalam tahun kalender yang sama." }
     }
-
-    if (totalAvailable < daysRequested) {
-      return { error: `Insufficient Annual Leave quota. You requested ${daysRequested} days, but only have ${totalAvailable} available.` }
-    }
-
-    // Provision request
-    const { data: cutiRow, error: cutiErr } = await supabase.from('cuti').insert({
-      employee_id: targetEmployeeId,
-      category,
-      dates,
-      note,
-      address,
-      recipient_type: recipientType,
-      atasan_id: atasanId,
-      pejabat_id: pejabatId,
-      attachment_url: attachmentUrl,
-      status: status
-    }).select('id').single()
-
-    if (cutiErr) return { error: cutiErr.message }
-
-    const leaveId = cutiRow.id;
-    let daysToDeduct = daysRequested;
-    
-    // Sequential deduction (waterfall) -> n-2, n-1, n
-    for (const b of actionableBuckets) {
-      if (daysToDeduct === 0) break;
-      
-      const deductionForThisBucket = Math.min(b.remaining, daysToDeduct);
-      
-      await supabase.from('leave_quota')
-        .update({ used_days: b.used_days + deductionForThisBucket })
-        .eq('id', b.id)
-
-      await supabase.from('leave_quota_breakdown').insert({
-        leave_id: leaveId,
-        quota_year: b.year,
-        days_deducted: deductionForThisBucket
-      })
-
-      daysToDeduct -= deductionForThisBucket;
-    }
-  } else {
-    // Other categories process independently
-    const { error: cutiErr } = await supabase.from('cuti').insert({
-      employee_id: targetEmployeeId,
-      category,
-      dates,
-      note,
-      address,
-      recipient_type: recipientType,
-      atasan_id: atasanId,
-      pejabat_id: pejabatId,
-      attachment_url: attachmentUrl,
-      status: status
-    })
-    if (cutiErr) return { error: cutiErr.message }
   }
+
+  // Insert request directly into the cuti table
+  const isAcc = status === 'acc';
+  const { error: cutiErr } = await supabase.from('cuti').insert({
+    employee_id: targetEmployeeId,
+    category,
+    dates,
+    note,
+    address,
+    recipient_type: recipientType,
+    atasan_id: atasanId || null,
+    pejabat_id: pejabatId || null,
+    attachment_url: attachmentUrl || null,
+    status: status,
+    is_atasan_approved: isAcc,
+    is_pejabat_approved: isAcc
+  })
+
+  if (cutiErr) return { error: cutiErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/form')
@@ -189,73 +78,154 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
   const { data: request } = await supabase.from('cuti').select('*').eq('id', requestId).single()
   if (!request) return { error: "Request not found" }
 
-  const { error } = await supabase.from('cuti').update({ status: newStatus }).eq('id', requestId)
-  if (error) return { error: error.message }
-
-  // Re-fund deductibles if rejected specifically for annual leave
-  if ((newStatus === 'ditolak') && request.category === 'Tahunan') {
-    const { data: breakdowns } = await supabase.from('leave_quota_breakdown').select('*').eq('leave_id', requestId)
-    if (breakdowns && breakdowns.length > 0) {
-      for (const bd of breakdowns) {
-        const { data: bucket } = await supabase.from('leave_quota').select('id, used_days').eq('employee_id', request.employee_id).eq('year', bd.quota_year).single()
-        if (bucket) {
-           await supabase.from('leave_quota').update({ used_days: Math.max(0, bucket.used_days - bd.days_deducted) }).eq('id', bucket.id)
-        }
-      }
-      await supabase.from('leave_quota_breakdown').delete().eq('leave_id', requestId)
-    }
+  const updates = { status: newStatus }
+  if (newStatus === 'ditolak') {
+    updates.is_atasan_approved = false
+    updates.is_pejabat_approved = false
+  } else if (newStatus === 'acc') {
+    updates.is_atasan_approved = true
+    updates.is_pejabat_approved = true
   }
+
+  const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
+  if (error) return { error: error.message }
 
   revalidatePath('/admin/requests')
   revalidatePath('/dashboard')
   return { success: true }
 }
 
-export async function getLeaveQuotaOverviewAction(employeeId) {
+export async function signLeaveAction(requestId, roleType) {
   const supabase = await createClient()
-  const currentYear = new Date().getFullYear();
-  const buckets = await ensureAndCapQuotas(supabase, employeeId, currentYear);
 
-  let totalAllowed = 0;
-  let totalRemaining = 0;
-  
-  for (const b of buckets) {
-      totalAllowed += b.total_days;
-      totalRemaining += (b.total_days - b.used_days);
+  // 1. Get request
+  const { data: request } = await supabase.from('cuti').select('*').eq('id', requestId).single()
+  if (!request) return { error: "Request not found" }
+
+  // 2. Get currently logged in employee to verify role authorization
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('id, role')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!employee) return { error: "Employee profile not found" }
+
+  const updates = {}
+  if (roleType === 'atasan') {
+    if (request.atasan_id !== employee.id && employee.role !== 'admin') {
+      return { error: "Anda bukan Atasan Langsung yang ditunjuk untuk permohonan ini." }
+    }
+    updates.is_atasan_approved = true
+  } else if (roleType === 'pejabat') {
+    if (request.pejabat_id !== employee.id && employee.role !== 'admin') {
+      return { error: "Anda bukan Pejabat Berwenang yang ditunjuk untuk permohonan ini." }
+    }
+    updates.is_pejabat_approved = true
+  } else {
+    return { error: "Tipe tanda tangan tidak valid." }
   }
 
-  // Ensure we always have slots for n, n-1, n-2 even if they don't exist in DB
-  const yearsToInclude = [currentYear, currentYear - 1, currentYear - 2];
-  const bucketMap = new Map(buckets.map(b => [b.year, b]));
-  
-  const finalDisplayBuckets = yearsToInclude.map(year => {
-    const b = bucketMap.get(year);
-    if (b) {
-      return {
-        year: b.year,
-        total: b.total_days,
-        used: b.used_days,
-        remaining: b.total_days - b.used_days,
-        expires_at: b.expires_at
-      };
-    } else {
-      // Placeholder for years without an active bucket
-      return {
-        year,
-        total: 0,
-        used: 0,
-        remaining: 0,
-        expires_at: null
-      };
+  // Determine if the leave is now fully approved (both are signed or null)
+  const finalIsAtasanApproved = roleType === 'atasan' ? true : (request.is_atasan_approved || !request.atasan_id)
+  const finalIsPejabatApproved = roleType === 'pejabat' ? true : (request.is_pejabat_approved || !request.pejabat_id)
+
+  if (finalIsAtasanApproved && finalIsPejabatApproved) {
+    updates.status = 'acc'
+  }
+
+  const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/requests')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function getLeaveQuotaOverviewAction(employeeId, excludeLeaveId = null) {
+  const supabase = await createClient()
+  const currentYear = new Date().getFullYear()
+
+  // 1. Fetch employee start date to restrict carryover
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('start_date')
+    .eq('id', employeeId)
+    .single()
+
+  const startYear = employee?.start_date ? new Date(employee.start_date).getFullYear() : currentYear
+
+  // 2. Single clean query to fetch all approved 'Tahunan' leaves
+  const { data: approvedLeaves } = await supabase
+    .from('cuti')
+    .select('id, dates')
+    .eq('employee_id', employeeId)
+    .eq('category', 'Tahunan')
+    .eq('status', 'acc')
+
+  // Group and sum used days by year for the last 3 years
+  const usedByYear = { [currentYear]: 0, [currentYear - 1]: 0, [currentYear - 2]: 0 }
+
+  if (approvedLeaves) {
+    for (const leave of approvedLeaves) {
+      if (leave.id === excludeLeaveId) continue
+      if (leave.dates) {
+        for (const dateStr of leave.dates) {
+          const year = new Date(dateStr).getFullYear()
+          if (year in usedByYear) {
+            usedByYear[year]++
+          } else {
+            usedByYear[year] = (usedByYear[year] || 0) + 1
+          }
+        }
+      }
     }
-  });
+  }
+
+  const used_n = usedByYear[currentYear] || 0
+  const used_n1 = usedByYear[currentYear - 1] || 0
+  const used_n2 = usedByYear[currentYear - 2] || 0
+
+  // Calculate carryovers on-the-fly based on remaining quota of past years (max 6 each)
+  const carryover_n1 = (currentYear - 1 >= startYear) ? Math.max(0, Math.min(12 - used_n1, 6)) : 0
+  const carryover_n2 = (currentYear - 2 >= startYear) ? Math.max(0, Math.min(12 - used_n2, 6)) : 0
+  const total_kuota = 12 + carryover_n1 + carryover_n2
+  const sisa_kuota = total_kuota - used_n
+
+  const buckets = [
+    {
+      year: currentYear - 2,
+      total: (currentYear - 2 >= startYear) ? 6 : 0,
+      used: (currentYear - 2 >= startYear) ? 6 - carryover_n2 : 0,
+      remaining: carryover_n2,
+      expires_at: null
+    },
+    {
+      year: currentYear - 1,
+      total: (currentYear - 1 >= startYear) ? 6 : 0,
+      used: (currentYear - 1 >= startYear) ? 6 - carryover_n1 : 0,
+      remaining: carryover_n1,
+      expires_at: null
+    },
+    {
+      year: currentYear,
+      total: 12,
+      used: used_n,
+      remaining: 12 - used_n,
+      expires_at: null
+    }
+  ]
 
   return {
-    totalAllowed,
-    totalRemaining,
-    used: totalAllowed - totalRemaining,
-    progressPercent: totalAllowed > 0 ? Math.round(((totalAllowed - totalRemaining) / totalAllowed) * 100) : 0,
-    buckets: finalDisplayBuckets.sort((a, b) => a.year - b.year)
+    totalAllowed: 12,
+    totalRemaining: 12 - used_n,
+    used: used_n,
+    carryoverAllowed: carryover_n1 + carryover_n2,
+    progressPercent: Math.min(100, Math.max(0, Math.round((used_n / 12) * 100))),
+    buckets: buckets.sort((a, b) => a.year - b.year)
   }
 }
 
@@ -267,7 +237,6 @@ export async function deleteLeaveAction(requestId) {
   const { data: employee } = await supabase.from('employees').select('id').eq('auth_id', user.id).single()
   if (!employee) return { error: "Unauthorized" }
 
-  // Get request
   const { data: request, error: fetchErr } = await supabase
     .from('cuti')
     .select('*')
@@ -276,39 +245,9 @@ export async function deleteLeaveAction(requestId) {
 
   if (fetchErr || !request) return { error: "Request not found" }
   
-  // Security: only owner can delete their OWN PENDING request
   if (request.employee_id !== employee.id) return { error: "Unauthorized" }
   if (request.status !== 'pending') return { error: "Only pending requests can be deleted" }
 
-  // Refund Quota if Tahunan
-  if (request.category === 'Tahunan') {
-    const { data: breakdowns } = await supabase
-      .from('leave_quota_breakdown')
-      .select('*')
-      .eq('leave_id', requestId)
-      
-    if (breakdowns && breakdowns.length > 0) {
-      for (const bd of breakdowns) {
-        const { data: bucket } = await supabase
-          .from('leave_quota')
-          .select('id, used_days')
-          .eq('employee_id', request.employee_id)
-          .eq('year', bd.quota_year)
-          .single()
-          
-        if (bucket) {
-          await supabase
-            .from('leave_quota')
-            .update({ used_days: Math.max(0, bucket.used_days - bd.days_deducted) })
-            .eq('id', bucket.id)
-        }
-      }
-      // Clean up breakdowns manually before record deletion just in case
-      await supabase.from('leave_quota_breakdown').delete().eq('leave_id', requestId)
-    }
-  }
-
-  // Delete the record
   const { error } = await supabase.from('cuti').delete().eq('id', requestId)
   if (error) return { error: error.message }
 
@@ -325,7 +264,6 @@ export async function adminDeleteLeaveAction(requestId) {
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
   if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
 
-  // Get request to check category
   const { data: request, error: fetchErr } = await supabase
     .from('cuti')
     .select('*')
@@ -334,40 +272,11 @@ export async function adminDeleteLeaveAction(requestId) {
 
   if (fetchErr || !request) return { error: "Request not found" }
   
-  // Refund Quota if Tahunan and the request was somehow using quota 
-  // (usually rejected requests already refunded, but if pending, refund it)
-  if (request.category === 'Tahunan' && request.status !== 'ditolak') {
-    const { data: breakdowns } = await supabase
-      .from('leave_quota_breakdown')
-      .select('*')
-      .eq('leave_id', requestId)
-      
-    if (breakdowns && breakdowns.length > 0) {
-      for (const bd of breakdowns) {
-        const { data: bucket } = await supabase
-          .from('leave_quota')
-          .select('id, used_days')
-          .eq('employee_id', request.employee_id)
-          .eq('year', bd.quota_year)
-          .single()
-          
-        if (bucket) {
-          await supabase
-            .from('leave_quota')
-            .update({ used_days: Math.max(0, bucket.used_days - bd.days_deducted) })
-            .eq('id', bucket.id)
-        }
-      }
-      await supabase.from('leave_quota_breakdown').delete().eq('leave_id', requestId)
-    }
-  }
-
-  // Delete the record
   const { error } = await supabase.from('cuti').delete().eq('id', requestId)
   if (error) return { error: error.message }
 
   revalidatePath('/admin/requests')
-  revalidatePath('/admin/manage/attachments') // Attachments list might have changed
+  revalidatePath('/admin/manage/attachments')
   return { success: true }
 }
 
@@ -379,7 +288,6 @@ export async function bulkDeleteRejectedRequestsAction() {
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
   if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
 
-  // 1. Fetch all rejected requests
   const { data: rejectedRequests, error: fetchErr } = await supabase
     .from('cuti')
     .select('id, attachment_url')
@@ -390,12 +298,10 @@ export async function bulkDeleteRejectedRequestsAction() {
     return { success: true, message: "Tidak ada permintaan yang ditolak untuk dihapus." }
   }
 
-  // 2. Extract attachments to delete
   const attachmentsToDelete = rejectedRequests
     .map(r => r.attachment_url)
     .filter(url => url !== null && url !== '')
 
-  // 3. Delete attachments from storage
   if (attachmentsToDelete.length > 0) {
     const { error: storageErr } = await supabase.storage
       .from('leave_attachments')
@@ -403,11 +309,9 @@ export async function bulkDeleteRejectedRequestsAction() {
     
     if (storageErr) {
       console.error("Error deleting bulk attachments:", storageErr)
-      // Continue anyway to delete the DB records
     }
   }
 
-  // 4. Delete the database records
   const { error: deleteErr } = await supabase
     .from('cuti')
     .delete()
@@ -419,5 +323,3 @@ export async function bulkDeleteRejectedRequestsAction() {
   revalidatePath('/admin/manage/attachments')
   return { success: true, count: rejectedRequests.length }
 }
-
-

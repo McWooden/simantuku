@@ -1,2 +1,0 @@
-- make the inbox leave just display when its you as admin get mentioned in the leave request
-- there is login with google, lets make other login method with email and password, for begginning the email and password it is nip employee

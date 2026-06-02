@@ -12,15 +12,32 @@ import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 
+import { useState, useEffect } from 'react'
+
 export function DateDetailsModal({ dates, children }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Convert string dates back to Date objects for the calendar
   const dateObjects = dates.map(d => new Date(d))
+
+  if (!mounted) {
+    return children || (
+      <button className="flex items-center gap-2 text-primary hover:underline group" type="button">
+        <CalendarIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        <span>{dates.length} Days</span>
+      </button>
+    )
+  }
 
   return (
     <Dialog>
       <DialogTrigger asChild>
         {children || (
-          <button className="flex items-center gap-2 text-primary hover:underline group">
+          <button className="flex items-center gap-2 text-primary hover:underline group" type="button">
             <CalendarIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             <span>{dates.length} Days</span>
           </button>

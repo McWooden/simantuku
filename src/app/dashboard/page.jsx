@@ -10,6 +10,7 @@ import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
 import { CalendarDays, PlusCircle, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import { CancelLeaveButton } from './CancelLeaveButton'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
+import { NipPasswordToggle } from '@/components/ui/NipPasswordToggle'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -48,8 +49,7 @@ export default async function DashboardPage() {
     .select(`
       *,
       atasan:employees!atasan_id(id, name, nip, position),
-      pejabat:employees!pejabat_id(id, name, nip, position),
-      breakdowns:leave_quota_breakdown(quota_year, days_deducted)
+      pejabat:employees!pejabat_id(id, name, nip, position)
     `)
     .eq('employee_id', employee.id)
     .order('created_at', { ascending: false })
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
               </div>
 
               <p className="text-[10px] text-muted-foreground mt-4 italic">
-                * Kuota diprioritaskan menggunakan hari yang kedaluwarsa lebih awal.
+                * Kuota tahunan dihitung berdasarkan tahun kalender berjalan. Sisa cuti tidak diakumulasikan ke tahun berikutnya.
               </p>
             </div>
 
@@ -207,6 +207,11 @@ export default async function DashboardPage() {
                   </Badge>
                 </div>
               </div>
+            </div>
+            
+            {/* Account Security Settings */}
+            <div className="pt-6 border-t border-slate-100">
+              <NipPasswordToggle employee={employee} />
             </div>
           </CardContent>
         </Card>
@@ -293,10 +298,12 @@ export default async function DashboardPage() {
                         recipientType: leave.recipient_type,
                         atasan: leave.atasan,
                         pejabat: leave.pejabat,
+                        isAtasanApproved: leave.is_atasan_approved,
+                        isPejabatApproved: leave.is_pejabat_approved,
                         quotas: {
-                           sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear)?.days_deducted || 0),
-                           sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear - 1)?.days_deducted || 0),
-                           sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.breakdowns?.find(bd => bd.quota_year === currentYear - 2)?.days_deducted || 0)
+                           sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                           sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                           sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
                         }
                       }}
                       size="sm" 

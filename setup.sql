@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS employees (
   phone_number TEXT,
   is_superior BOOLEAN DEFAULT false,
   auth_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  is_password_enabled BOOLEAN DEFAULT false,
   UNIQUE(auth_id)
 );
 
@@ -45,31 +46,10 @@ CREATE TABLE IF NOT EXISTS cuti (
   recipient_type TEXT,
   atasan_id UUID REFERENCES employees(id) ON DELETE SET NULL,
   pejabat_id UUID REFERENCES employees(id) ON DELETE SET NULL,
-  attachment_url TEXT
+  attachment_url TEXT,
+  is_atasan_approved BOOLEAN DEFAULT false,
+  is_pejabat_approved BOOLEAN DEFAULT false
 );
-
--- 4. Leave Quota Table
--- Advanced bucket system tracking annual limits and carryover for employees.
-CREATE TABLE IF NOT EXISTS leave_quota (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-    year INT NOT NULL,
-    total_days INT NOT NULL DEFAULT 12,
-    used_days INT NOT NULL DEFAULT 0,
-    is_capped BOOLEAN NOT NULL DEFAULT FALSE,
-    expires_at TIMESTAMPTZ,
-    UNIQUE(employee_id, year)
-);
-
--- 5. Leave Quota Breakdown Table
--- Logs the exact deductions across buckets for a single leave request (powers safe refunds).
-CREATE TABLE IF NOT EXISTS leave_quota_breakdown (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    leave_id UUID NOT NULL REFERENCES cuti(id) ON DELETE CASCADE,
-    quota_year INT NOT NULL,
-    days_deducted INT NOT NULL
-);
-
 -- ==========================================
 -- RUN THESE MIGRATIONS TO UPDATE EXISTING DB
 -- ==========================================
@@ -79,6 +59,9 @@ CREATE TABLE IF NOT EXISTS leave_quota_breakdown (
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS recipient_type TEXT;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS atasan_id UUID REFERENCES employees(id) ON DELETE SET NULL;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+-- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS is_atasan_approved BOOLEAN DEFAULT false;
+-- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS is_pejabat_approved BOOLEAN DEFAULT false;
+-- ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_password_enabled BOOLEAN DEFAULT false;
 
 -- ==========================================
 -- STORAGE BUCKETS (Run in SQL Editor if needed)

@@ -35,9 +35,6 @@ export default async function UserRequestDetailPage({ params }) {
       ),
       pejabat:employees!pejabat_id (
         name, position
-      ),
-      breakdowns:leave_quota_breakdown (
-        quota_year, days_deducted
       )
     `)
     .eq('id', id)
