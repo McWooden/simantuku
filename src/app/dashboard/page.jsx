@@ -57,6 +57,12 @@ export default async function DashboardPage() {
 
   const hasPending = leaveHistory?.some(l => l.status === 'pending');
 
+  const hasMissingProfileInfo = !employee.position || 
+                                !employee.unit || 
+                                !employee.nip || 
+                                !employee.phone_number || 
+                                !employee.start_date;
+
   return (
     <div className="space-y-8 pt-4">
       {/* Hero Banner */}
@@ -155,12 +161,27 @@ export default async function DashboardPage() {
         <Card className="md:col-span-2 border-none shadow-md bg-white hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
           <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-violet-100 rounded-full blur-2xl transition-transform group-hover:scale-125" />
           <CardContent className="p-6 relative z-10 space-y-6">
-            <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
               <div>
                 <h3 className="text-xl font-bold text-slate-800">Detail Pegawai</h3>
                 <p className="text-xs text-muted-foreground">Informasi lengkap profil resmi Anda.</p>
               </div>
             </div>
+
+            {hasMissingProfileInfo && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800 shadow-xs animate-in fade-in duration-300">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <h5 className="font-bold text-xs uppercase tracking-wider mb-1">Pemberitahuan Data Profil</h5>
+                  <p className="text-xs leading-relaxed text-amber-700">
+                    Hubungi Admin jika terdapat data profil yang tidak valid atau belum lengkap agar seluruh dokumen pengajuan cuti Anda tercetak dengan sempurna.
+                  </p>
+                  <p className="text-xs font-medium italic text-amber-600 mt-1.5">
+                    "Dont forget to tell admin if there an invalid value or not fill value, for makes your request is full"
+                  </p>
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
               <div className="space-y-1">
