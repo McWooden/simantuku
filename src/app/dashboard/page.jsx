@@ -57,11 +57,11 @@ export default async function DashboardPage() {
 
   const hasPending = leaveHistory?.some(l => l.status === 'pending');
 
-  const hasMissingProfileInfo = !employee.position || 
-                                !employee.unit || 
-                                !employee.nip || 
-                                !employee.phone_number || 
-                                !employee.start_date;
+  const hasMissingProfileInfo = !employee.position ||
+    !employee.unit ||
+    !employee.nip ||
+    !employee.phone_number ||
+    !employee.start_date;
 
   return (
     <div className="space-y-8 pt-4">
@@ -107,9 +107,9 @@ export default async function DashboardPage() {
                   <CalendarDays className="w-6 h-6" />
                 </div>
               </div>
-              
+
               <div className="mt-6 w-full bg-secondary rounded-full h-2.5 overflow-hidden">
-                <div 
+                <div
                   className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 ></div>
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
                   <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-700">
-                        Tahun {bucket.year} 
+                        Tahun {bucket.year}
                         {bucket.year === currentYear ? (
                           <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
                         ) : bucket.year === currentYear - 1 ? (
@@ -176,13 +176,10 @@ export default async function DashboardPage() {
                   <p className="text-xs leading-relaxed text-amber-700">
                     Hubungi Admin jika terdapat data profil yang tidak valid atau belum lengkap agar seluruh dokumen pengajuan cuti Anda tercetak dengan sempurna.
                   </p>
-                  <p className="text-xs font-medium italic text-amber-600 mt-1.5">
-                    "Dont forget to tell admin if there an invalid value or not fill value, for makes your request is full"
-                  </p>
                 </div>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
               <div className="space-y-1">
                 <span className="text-xs text-muted-foreground block">Nama Lengkap</span>
@@ -229,7 +226,7 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Account Security Settings */}
             <div className="pt-6 border-t border-slate-100">
               <NipPasswordToggle employee={employee} />
@@ -257,19 +254,19 @@ export default async function DashboardPage() {
             leaveHistory.map((leave) => {
               const isAcc = leave.status === 'acc';
               const isRejected = leave.status === 'ditolak';
-              
+
               return (
-                <div 
-                  key={leave.id} 
+                <div
+                  key={leave.id}
                   className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex items-center justify-between p-5 flex-col sm:flex-row gap-4"
                 >
                   <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
                     <div className="p-2 rounded-full mt-0.5 bg-slate-50 text-slate-500 border border-slate-100 shrink-0">
-                      {isAcc ? <CheckCircle2 className="w-4 h-4" /> : 
-                       isRejected ? <AlertCircle className="w-4 h-4" /> : 
-                       <Clock className="w-4 h-4" />}
+                      {isAcc ? <CheckCircle2 className="w-4 h-4" /> :
+                        isRejected ? <AlertCircle className="w-4 h-4" /> :
+                          <Clock className="w-4 h-4" />}
                     </div>
-                    
+
                     <div className="min-w-0 flex-1">
                       <Link href={`/dashboard/requests/${leave.id}`} className="hover:underline text-slate-800">
                         <h4 className="font-semibold text-base mb-0.5">{leave.category}</h4>
@@ -300,9 +297,9 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <DownloadPdfButton 
+                    <DownloadPdfButton
                       pdfData={{
                         employeeId: employee.id,
                         status: leave.status,
@@ -322,13 +319,13 @@ export default async function DashboardPage() {
                         isAtasanApproved: leave.is_atasan_approved,
                         isPejabatApproved: leave.is_pejabat_approved,
                         quotas: {
-                           sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                           sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                           sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
+                          sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                          sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                          sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
                         }
                       }}
-                      size="sm" 
-                      variant="ghost" 
+                      size="sm"
+                      variant="ghost"
                       className="text-muted-foreground hover:text-primary gap-1.5 h-8 px-2"
                     />
                     {leave.status === 'pending' && (
