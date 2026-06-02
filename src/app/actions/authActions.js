@@ -38,9 +38,11 @@ export async function nipLoginAction(nip, password) {
     }
   }
 
+  const authEmail = employee.email || `${nip}@sicerdas.local`;
+
   // 4. Attempt standard sign in using email & NIP as password
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: employee.email,
+    email: authEmail,
     password: password
   })
 
@@ -70,16 +72,42 @@ export async function nipLoginAction(nip, password) {
                         signInError.status === 404;
 
   if (isInvalidCreds && !employee.auth_id) {
-    // Attempt to register the user officially in Supabase Auth
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: employee.email,
-      password: password,
-      options: {
-        data: {
+    let signUpData, signUpError;
+
+    // Use Admin API to bypass email rate limits and avoid sending confirmation emails if Service Key is available
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceKey) {
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        serviceKey,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+      
+      const response = await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
           username: employee.name
         }
-      }
-    })
+      });
+      signUpData = { user: response.data.user };
+      signUpError = response.error;
+    } else {
+      // Fallback to standard signUp if no Service Key is configured
+      const response = await supabase.auth.signUp({
+        email: authEmail,
+        password: password,
+        options: {
+          data: {
+            username: employee.name
+          }
+        }
+      });
+      signUpData = response.data;
+      signUpError = response.error;
+    }
 
     if (signUpError) {
       const errMsg = signUpError.message.toLowerCase()
@@ -110,7 +138,7 @@ export async function nipLoginAction(nip, password) {
 
       // Sign in again to establish standard cookies/session context
       const { error: finalSignInError } = await supabase.auth.signInWithPassword({
-        email: employee.email,
+        email: authEmail,
         password: password
       })
 

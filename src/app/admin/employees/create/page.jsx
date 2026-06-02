@@ -214,18 +214,17 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className={hasEmailError ? 'text-destructive' : ''}>Email Resmi <span className="text-primary font-bold">*</span></Label>
+              <Label htmlFor="email" className={hasEmailError ? 'text-destructive' : ''}>Email Resmi</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 defaultValue={defaultEmail}
-                placeholder="Contoh: john@example.com"
-                required
+                placeholder="Contoh: john@example.com (Kosongkan jika belum ada)"
                 className={hasEmailError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {hasEmailError && <p className="text-xs text-destructive">Email sudah digunakan oleh pegawai lain.</p>}
-              <p className="text-xs text-muted-foreground">Harus sama dengan email akun Google untuk penautan otomatis.</p>
+              <p className="text-xs text-muted-foreground">Harus sama dengan email akun Google untuk penautan otomatis jika menggunakan Google Login.</p>
             </div>
 
             <div className="space-y-2">
