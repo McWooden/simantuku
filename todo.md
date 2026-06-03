@@ -1,0 +1,7 @@
+- add new role called "super admin", i dont know what will you value it in employee.admin, only this admin can edit profile and signature even its not the account who must sign
+- also give animation after sign if you trying fetch data again like loading or something,
+- hapus cuti (hanya super_admin)
+- dashboard form (input autofill)
+- nip tidak ada max length input di update & employee
+- kasih spasi untuk nip atasan dan pejabat setelah ke 8 dan 14, 15 (optional)
+- make delete single request that acc or ditolak

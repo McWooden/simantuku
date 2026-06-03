@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Calendar, FileText, MapPin, User, FileSignature, CheckCircle, XCircle } from 'lucide-react'
 import { PdfPreviewEmbed } from '@/components/ui/PdfPreviewEmbed'
+import { CUTI_DETAIL_SELECT } from '@/lib/utils'
+
 
 export default async function UserRequestDetailPage({ params }) {
   const { id } = await params
@@ -25,18 +27,7 @@ export default async function UserRequestDetailPage({ params }) {
   // Fetch request details with employee and superiors
   const { data: request, error } = await supabase
     .from('cuti')
-    .select(`
-      *,
-      employee:employees!employee_id (
-        id, name, nip, unit, position, phone_number, start_date
-      ),
-      atasan:employees!atasan_id (
-        name, position
-      ),
-      pejabat:employees!pejabat_id (
-        name, position
-      )
-    `)
+    .select(CUTI_DETAIL_SELECT)
     .eq('id', id)
     .single()
 

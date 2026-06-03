@@ -22,6 +22,14 @@ export default function LoginPage() {
 
   const supabase = createClient()
 
+  // Filter out all spaces from NIP input
+  useEffect(() => {
+    if (/\s/.test(nip)) {
+      setNip(nip.replace(/\s+/g, ''))
+    }
+  }, [nip])
+
+
   // Generate local secure distorted canvas CAPTCHA
   const generateCaptcha = () => {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghkmnpqrstuvwxyz' // Exclude easily confused chars (1, I, 0, O, l)
@@ -228,7 +236,6 @@ function isSupabaseOffline(error) {
                   placeholder="Masukkan NIP resmi Anda..."
                   value={nip}
                   onChange={(e) => setNip(e.target.value)}
-                  maxLength={19}
                   required
                   className="h-10 pl-3 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20 text-sm"
                 />

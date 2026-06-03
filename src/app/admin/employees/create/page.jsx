@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { updateEmployeeAction } from '@/app/actions/employeeActions'
 import { AlertCircle } from 'lucide-react'
+import { NipInput } from '@/components/ui/NipInput'
+
 
 const POSITIONS = [
   "Arsiparis Pelaksana / Terampil",
@@ -201,11 +203,10 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
 
             <div className="space-y-2">
               <Label htmlFor="nip" className={hasNipError ? 'text-destructive' : ''}>NIP <span className="text-primary font-bold">*</span></Label>
-              <Input
+              <NipInput
                 id="nip"
                 name="nip"
-                placeholder="Maksimal 19 karakter NIP"
-                maxLength={19}
+                placeholder="Masukkan NIP resmi"
                 defaultValue={defaultNip}
                 required
                 className={hasNipError ? 'border-destructive focus-visible:ring-destructive' : ''}
