@@ -15,10 +15,13 @@ import { AdminDeleteRequestButton } from './AdminDeleteRequestButton'
 import { DateDetailsModal } from '@/components/ui/DateDetailsModal'
 import { AlertCircle, FileText, Search, UserCheck, Inbox, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { Checkbox } from '@/components/ui/checkbox'
+
 
 export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
   const [tab, setTab] = useState('mentioned') // 'mentioned' or 'all'
   const [searchQuery, setSearchQuery] = useState('')
+  const [showDeleteButtons, setShowDeleteButtons] = useState(false)
 
   // Calculate counts for badges
   const pendingMentionedCount = initialRequests.filter(r => 
@@ -98,16 +101,29 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
           </button>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full md:w-80 mb-3 md:mb-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari pegawai atau kategori..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-slate-400"
-          />
+        {/* Quick Search and Mode Hapus Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto mb-3 md:mb-0">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 select-none shrink-0">
+            <Checkbox 
+              id="show-delete" 
+              checked={showDeleteButtons} 
+              onCheckedChange={(val) => setShowDeleteButtons(!!val)} 
+            />
+            <label htmlFor="show-delete" className="text-xs font-bold text-slate-600 cursor-pointer">
+              Mode Hapus
+            </label>
+          </div>
+
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari pegawai atau kategori..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-slate-400"
+            />
+          </div>
         </div>
       </div>
 
@@ -201,7 +217,7 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
                             currentEmployeeId={currentEmployeeId} 
                           />
                         )}
-                        {(request.status === 'ditolak' || request.status === 'acc') && (
+                        {showDeleteButtons && (request.status === 'ditolak' || request.status === 'acc') && (
                           <AdminDeleteRequestButton requestId={request.id} />
                         )}
                       </div>

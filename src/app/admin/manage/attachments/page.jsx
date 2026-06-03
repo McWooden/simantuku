@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { FileText, Download, Trash2, FolderArchive, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { adminDeleteLeaveAction } from '@/app/actions/leaveActions'
+import { adminDeleteLeaveAction, deleteStorageFileAction, deleteMultipleStorageFilesAction } from '@/app/actions/leaveActions'
+
 
 export default function AttachmentsManagerPage() {
   const [files, setFiles] = useState([])
@@ -17,6 +18,8 @@ export default function AttachmentsManagerPage() {
   const [downloadingZip, setDownloadingZip] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [deletingRequestId, setDeletingRequestId] = useState(null)
+  const [cleaningOrphans, setCleaningOrphans] = useState(false)
+
 
 
   const supabase = createClient()
@@ -114,21 +117,42 @@ export default function AttachmentsManagerPage() {
     }
   }
 
+  const handleDeleteOrphaned = async () => {
+    const targetFiles = files.filter(file => !mappings[file.fullPath])
+    if (targetFiles.length === 0) return
+    
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${targetFiles.length} file tanpa referensi secara permanen dari storage?`)) return
+    
+    setCleaningOrphans(true)
+    try {
+      const pathsToDelete = targetFiles.map(f => f.fullPath)
+      const res = await deleteMultipleStorageFilesAction(pathsToDelete)
+      if (res?.error) throw new Error(res.error)
+      
+      // Update state
+      setFiles(prev => prev.filter(f => mappings[f.fullPath]))
+    } catch (err) {
+      console.error(err)
+      alert(`Gagal membersihkan file: ${err.message}`)
+    } finally {
+      setCleaningOrphans(false)
+    }
+  }
+
+
 
   useEffect(() => {
     fetchFiles()
   }, [])
+
 
   const handleDelete = async (fullPath) => {
     if (!confirm('Anda yakin ingin menghapus file ini permanen dari storage? Tindakan ini tidak dapat dibatalkan.')) return
     
     setDeletingId(fullPath)
     try {
-      const { error: delError } = await supabase.storage
-        .from(bucketName)
-        .remove([fullPath])
-
-      if (delError) throw delError
+      const res = await deleteStorageFileAction(fullPath)
+      if (res?.error) throw new Error(res.error)
 
       setFiles(prev => prev.filter(f => f.fullPath !== fullPath))
     } catch (err) {
@@ -138,6 +162,7 @@ export default function AttachmentsManagerPage() {
       setDeletingId(null)
     }
   }
+
 
   const handleDownloadSingle = async (fullPath, fileName) => {
     try {
@@ -194,7 +219,21 @@ export default function AttachmentsManagerPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-2">
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {files.some(f => !mappings[f.fullPath]) && (
+            <Button
+              variant="outline"
+              onClick={handleDeleteOrphaned}
+              disabled={loading || cleaningOrphans}
+              className="shrink-0 text-red-650 hover:text-red-700 hover:bg-red-55 border-red-200 font-semibold"
+            >
+              {cleaningOrphans ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menghapus...</>
+              ) : (
+                <><Trash2 className="w-4 h-4 mr-2" /> Hapus Semua Tanpa Referensi</>
+              )}
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchFiles} disabled={loading} className="shrink-0">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Muat Ulang
           </Button>
@@ -210,6 +249,7 @@ export default function AttachmentsManagerPage() {
             )}
           </Button>
         </div>
+
       </div>
 
       {error && (
@@ -259,6 +299,10 @@ export default function AttachmentsManagerPage() {
                           const isDeletable = reqInfo.status === 'acc' || reqInfo.status === 'ditolak';
                           return (
                             <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[11px] font-bold text-slate-700">
+                                {reqInfo.employeeName}
+                              </span>
+                              <span className="text-slate-350">•</span>
                               <a 
                                 href={`/admin/requests/${reqInfo.id}`}
                                 className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors font-semibold"

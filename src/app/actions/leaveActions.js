@@ -327,3 +327,52 @@ export async function bulkDeleteRejectedRequestsAction() {
   revalidatePath('/admin/manage/attachments')
   return { success: true, count: rejectedRequests.length }
 }
+
+export async function deleteStorageFileAction(fullPath) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authorized" }
+
+  const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
+  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('leave_attachments')
+    .remove([fullPath])
+
+  if (error) return { error: error.message }
+  if (!data || data.length === 0) return { error: "File not found or could not be deleted from storage." }
+
+  return { success: true }
+}
+
+export async function deleteMultipleStorageFilesAction(paths) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authorized" }
+
+  const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
+  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('leave_attachments')
+    .remove(paths)
+
+  if (error) return { error: error.message }
+  if (!data || data.length === 0) return { error: "No files were deleted from storage." }
+
+  return { success: true, deletedCount: data.length }
+}
+
