@@ -223,7 +223,7 @@ export default function AttachmentsManagerPage() {
                         </a>
                       ) : (
                         <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-200" title="File ini tidak ditautkan ke permohonan manapun (Mungkin permintaan cuti telah dihapus). Aman untuk dihapus.">
-                          Yatim Piatu (Aman Dihapus)
+                          Tanpa Referensi (Aman Dihapus)
                         </span>
                       )}
                     </div>

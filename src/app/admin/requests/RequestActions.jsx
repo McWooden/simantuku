@@ -1,50 +1,68 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateLeaveStatusAction, signLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
-import { Check, X, Lock, PenTool } from 'lucide-react'
+import { Check, X, Lock, PenTool, Loader2 } from 'lucide-react'
 
 export function RequestActions({ request, currentEmployeeId, redirectUrl }) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [activeAction, setActiveAction] = useState(null) // 'atasan', 'pejabat', or 'tolak'
 
-  const handleUpdate = async (status) => {
+  // Reset active action when transition completes
+  useEffect(() => {
+    if (!isPending) {
+      setActiveAction(null)
+    }
+  }, [isPending])
+
+  const handleUpdate = (status) => {
     if (status === 'ditolak') {
       if (!confirm('Anda yakin ingin menolak permohonan cuti ini?')) return
     }
-    setLoading(true)
-    const res = await updateLeaveStatusAction(request.id, status)
-
-    if (res?.error) {
-      alert(res.error)
-      setLoading(false)
-    } else {
-      router.refresh()
-      if (redirectUrl) {
-        router.push(redirectUrl)
-      } else {
-        setLoading(false)
+    setActiveAction('tolak')
+    startTransition(async () => {
+      try {
+        const res = await updateLeaveStatusAction(request.id, status)
+        if (res?.error) {
+          alert(res.error)
+          setActiveAction(null)
+        } else {
+          router.refresh()
+          if (redirectUrl) {
+            router.push(redirectUrl)
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Terjadi kesalahan saat menolak permohonan.')
+        setActiveAction(null)
       }
-    }
+    })
   }
 
-  const handleSign = async (roleType) => {
-    setLoading(true)
-    const res = await signLeaveAction(request.id, roleType)
-
-    if (res?.error) {
-      alert(res.error)
-      setLoading(false)
-    } else {
-      router.refresh()
-      if (redirectUrl) {
-        router.push(redirectUrl)
-      } else {
-        setLoading(false)
+  const handleSign = (roleType) => {
+    setActiveAction(roleType)
+    startTransition(async () => {
+      try {
+        const res = await signLeaveAction(request.id, roleType)
+        if (res?.error) {
+          alert(res.error)
+          setActiveAction(null)
+        } else {
+          router.refresh()
+          if (redirectUrl) {
+            router.push(redirectUrl)
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Terjadi kesalahan saat menandatangani.')
+        setActiveAction(null)
       }
-    }
+    })
   }
 
   const isAtasanSignatory = request.atasan_id === currentEmployeeId
@@ -69,10 +87,15 @@ export function RequestActions({ request, currentEmployeeId, redirectUrl }) {
                 : "text-slate-400 cursor-not-allowed bg-slate-50 border-slate-100 hover:bg-slate-50"
               }
               onClick={() => handleSign('atasan')}
-              disabled={loading || !isAtasanSignatory}
+              disabled={isPending || !isAtasanSignatory}
               title={isAtasanSignatory ? "Tandatangani sebagai Atasan Langsung" : "Anda bukan Atasan Langsung untuk permohonan ini"}
             >
-              {isAtasanSignatory ? (
+              {activeAction === 'atasan' && isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-indigo-500" />
+                  Proses...
+                </>
+              ) : isAtasanSignatory ? (
                 <>
                   <PenTool className="h-3.5 w-3.5 mr-1 text-indigo-500 animate-pulse" />
                   Sign Atasan
@@ -105,10 +128,15 @@ export function RequestActions({ request, currentEmployeeId, redirectUrl }) {
                 : "text-slate-400 cursor-not-allowed bg-slate-50 border-slate-100 hover:bg-slate-50"
               }
               onClick={() => handleSign('pejabat')}
-              disabled={loading || !isPejabatSignatory}
+              disabled={isPending || !isPejabatSignatory}
               title={isPejabatSignatory ? "Tandatangani sebagai Pejabat Berwenang" : "Anda bukan Pejabat Berwenang untuk permohonan ini"}
             >
-              {isPejabatSignatory ? (
+              {activeAction === 'pejabat' && isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-indigo-500" />
+                  Proses...
+                </>
+              ) : isPejabatSignatory ? (
                 <>
                   <PenTool className="h-3.5 w-3.5 mr-1 text-indigo-500 animate-pulse" />
                   Sign Pejabat
@@ -130,10 +158,19 @@ export function RequestActions({ request, currentEmployeeId, redirectUrl }) {
         variant="outline" 
         className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100"
         onClick={() => handleUpdate('ditolak')}
-        disabled={loading}
+        disabled={isPending}
       >
-        <X className="h-3.5 w-3.5 mr-1" />
-        Tolak
+        {activeAction === 'tolak' && isPending ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-rose-500" />
+            Proses...
+          </>
+        ) : (
+          <>
+            <X className="h-3.5 w-3.5 mr-1" />
+            Tolak
+          </>
+        )}
       </Button>
     </div>
   )
