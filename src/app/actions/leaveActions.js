@@ -271,6 +271,10 @@ export async function adminDeleteLeaveAction(requestId) {
     .single()
 
   if (fetchErr || !request) return { error: "Request not found" }
+
+  if (request.status !== 'acc' && request.status !== 'ditolak') {
+    return { error: "Only approved (acc) or rejected requests can be deleted by admin." }
+  }
   
   const { error } = await supabase.from('cuti').delete().eq('id', requestId)
   if (error) return { error: error.message }

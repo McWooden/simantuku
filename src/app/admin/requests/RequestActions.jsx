@@ -13,10 +13,10 @@ export function RequestActions({ request, currentEmployeeId, redirectUrl }) {
 
   // Reset active action when transition completes
   useEffect(() => {
-    if (!isPending) {
+    if (!isPending && activeAction !== null) {
       setActiveAction(null)
     }
-  }, [isPending])
+  }, [isPending, activeAction])
 
   const handleUpdate = (status) => {
     if (status === 'ditolak') {

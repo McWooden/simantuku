@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { FileText, Download, Trash2, FolderArchive, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { adminDeleteLeaveAction } from '@/app/actions/leaveActions'
 
 export default function AttachmentsManagerPage() {
   const [files, setFiles] = useState([])
@@ -15,6 +16,8 @@ export default function AttachmentsManagerPage() {
   const [mappings, setMappings] = useState({})
   const [downloadingZip, setDownloadingZip] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [deletingRequestId, setDeletingRequestId] = useState(null)
+
 
   const supabase = createClient()
   const categories = ['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit']
@@ -57,13 +60,17 @@ export default function AttachmentsManagerPage() {
       // Fetch mappings from DB to see which request owns the file
       const { data: cutiRequests, error: cutiError } = await supabase
         .from('cuti')
-        .select('id, attachment_url')
+        .select('id, attachment_url, status, employee:employees(name)')
         .not('attachment_url', 'is', null)
       
       const newMappings = {}
       if (cutiRequests && !cutiError) {
         cutiRequests.forEach(req => {
-          newMappings[req.attachment_url] = req.id
+          newMappings[req.attachment_url] = {
+            id: req.id,
+            status: req.status,
+            employeeName: req.employee?.name || 'Pegawai'
+          }
         })
       }
       setMappings(newMappings)
@@ -75,6 +82,38 @@ export default function AttachmentsManagerPage() {
       setLoading(false)
     }
   }
+
+  const handleDeleteRequest = async (requestId, fullPath) => {
+    const reqInfo = mappings[fullPath]
+    if (!reqInfo) return
+    if (reqInfo.status !== 'acc' && reqInfo.status !== 'ditolak') {
+      alert('Hanya permohonan dengan status disetujui (acc) atau ditolak yang dapat dihapus.')
+      return
+    }
+
+    if (!confirm(`Anda yakin ingin menghapus permohonan cuti resmi milik ${reqInfo.employeeName} secara permanen? Data permohonan di database akan terhapus secara permanen.`)) return
+
+    setDeletingRequestId(requestId)
+    try {
+      const res = await adminDeleteLeaveAction(requestId)
+      if (res?.error) {
+        throw new Error(res.error)
+      }
+      
+      // Update mappings state to clear this reference
+      setMappings(prev => {
+        const next = { ...prev }
+        delete next[fullPath]
+        return next
+      })
+    } catch (err) {
+      console.error(err)
+      alert(`Gagal menghapus permohonan: ${err.message}`)
+    } finally {
+      setDeletingRequestId(null)
+    }
+  }
+
 
   useEffect(() => {
     fetchFiles()
@@ -214,18 +253,50 @@ export default function AttachmentsManagerPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-xs text-slate-500 md:hidden">{file.category}</p>
-                      {mappings[file.fullPath] ? (
-                        <a 
-                          href={`/admin/requests/${mappings[file.fullPath]}`}
-                          className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors"
-                        >
-                          Lihat Permintaan
-                        </a>
-                      ) : (
-                        <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-200" title="File ini tidak ditautkan ke permohonan manapun (Mungkin permintaan cuti telah dihapus). Aman untuk dihapus.">
-                          Tanpa Referensi (Aman Dihapus)
-                        </span>
-                      )}
+                      {(() => {
+                        const reqInfo = mappings[file.fullPath];
+                        if (reqInfo) {
+                          const isDeletable = reqInfo.status === 'acc' || reqInfo.status === 'ditolak';
+                          return (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <a 
+                                href={`/admin/requests/${reqInfo.id}`}
+                                className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors font-semibold"
+                              >
+                                Lihat Permintaan
+                              </a>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase ${
+                                reqInfo.status === 'acc' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                reqInfo.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {reqInfo.status === 'acc' ? 'DISETUJUI' : reqInfo.status === 'ditolak' ? 'DITOLAK' : 'PENDING'}
+                              </span>
+                              {isDeletable && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRequest(reqInfo.id, file.fullPath)}
+                                  disabled={deletingRequestId === reqInfo.id}
+                                  className="text-red-500 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                  title="Hapus Permintaan Cuti dari Database"
+                                >
+                                  {deletingRequestId === reqInfo.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3 h-3" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-200 font-semibold" title="File ini tidak ditautkan ke permohonan manapun (Mungkin permintaan cuti telah dihapus). Aman untuk dihapus.">
+                            Tanpa Referensi (Aman Dihapus)
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

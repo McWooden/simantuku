@@ -7,10 +7,10 @@ export function NipInput({ id, name, defaultValue, placeholder, className, requi
   const [value, setValue] = useState(defaultValue || '')
 
   useEffect(() => {
-    if (defaultValue) {
+    if (defaultValue && defaultValue !== value) {
       setValue(defaultValue)
     }
-  }, [defaultValue])
+  }, [defaultValue, value])
 
   // Filter out all spaces from the input value using useEffect
   useEffect(() => {

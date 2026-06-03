@@ -201,7 +201,7 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
                             currentEmployeeId={currentEmployeeId} 
                           />
                         )}
-                        {request.status === 'ditolak' && (
+                        {(request.status === 'ditolak' || request.status === 'acc') && (
                           <AdminDeleteRequestButton requestId={request.id} />
                         )}
                       </div>
