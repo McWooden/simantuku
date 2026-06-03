@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
+import { HeroAnimation } from "@/components/ui/HeroAnimation";
 import {
   CalendarCheck2,
   ShieldCheck,
@@ -19,42 +20,47 @@ export default function Home() {
       <div className="flex flex-col min-h-[calc(100vh-64px)] scroll-smooth">
         {/* Hero Section */}
         <section className="relative py-20 px-4 md:py-32 overflow-hidden">
-          {/* Abstract background elements */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none">
-            <div className="absolute top-[10%] right-[10%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[20%] left-[5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px]" />
-          </div>
 
-          <div className="container mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-8 border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              Semua yang Anda butuhkan untuk Manajemen Cuti
-            </div>
+          <div className="container mx-auto max-w-6xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+              {/* Left: Hero Text */}
+              <div className="text-center lg:text-left order-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-8 border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  Semua yang Anda butuhkan untuk Manajemen Cuti
+                </div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-              Kelola Cuti Tanpa Ribet, <br className="hidden md:block" />
-              <span className="text-primary">Tingkatkan Kinerja Pegawai.</span>
-            </h1>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+                  Kelola Cuti Tanpa Ribet, <br className="hidden md:block" />
+                  <span className="text-primary">Tingkatkan Kinerja Pegawai.</span>
+                </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
-              Generasi terbaru manajemen cuti. Pengajuan tanpa ribet, pemantauan real-time, dan analitik mendalam untuk instansi modern bersama Sicerdas.
-            </p>
+                <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl lg:mx-0 mx-auto animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
+                  Generasi terbaru manajemen cuti. Pengajuan tanpa ribet, pemantauan real-time, dan analitik mendalam untuk instansi modern bersama Sicerdas.
+                </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
-              <Button size="lg" className="rounded-full px-8 h-12 text-base font-semibold group transition-all hover:pr-6" asChild>
-                <Link href="/login">
-                  Mulai Sekarang
-                  <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-base font-semibold transition-all hover:bg-muted" asChild>
-                <Link href="/dashboard">
-                  Lihat Dashboard
-                </Link>
-              </Button>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
+                  <Button size="lg" className="rounded-full px-8 h-12 text-base font-semibold group transition-all hover:pr-6" asChild>
+                    <Link href="/login">
+                      Mulai Sekarang
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-base font-semibold transition-all hover:bg-muted" asChild>
+                    <Link href="/dashboard">
+                      Lihat Dashboard
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right: Document Lifecycle Animation */}
+              <div className="order-2 animate-in fade-in slide-in-from-right-12 duration-1000 delay-300">
+                <HeroAnimation />
+              </div>
             </div>
           </div>
         </section>

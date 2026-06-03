@@ -224,7 +224,7 @@ export async function getLeaveQuotaOverviewAction(employeeId, excludeLeaveId = n
     totalRemaining: 12 - used_n,
     used: used_n,
     carryoverAllowed: carryover_n1 + carryover_n2,
-    progressPercent: Math.min(100, Math.max(0, Math.round((used_n / 12) * 100))),
+    progressPercent: Math.min(100, Math.max(0, Math.round(((12 - used_n) / 12) * 100))),
     buckets: buckets.sort((a, b) => a.year - b.year)
   }
 }
