@@ -194,33 +194,33 @@ function isSupabaseOffline(error) {
 
   return (
     <>
-      <div className="absolute top-6 left-6 z-50">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+      <div className="absolute top-4 left-4 z-50">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" />
           Kembali
         </Link>
       </div>
       
-      <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4">
+      <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-2 sm:p-4">
         {/* Login Card */}
-        <div className="w-full max-w-md space-y-7 bg-white p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-100/60 ring-1 ring-slate-900/5 relative overflow-hidden">
+        <div className="w-full max-w-md space-y-4.5 bg-white p-5 sm:p-7 rounded-3xl shadow-xl border border-slate-100/60 ring-1 ring-slate-900/5 relative overflow-hidden my-auto">
           
           {/* Header */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4 ring-1 ring-primary/20 shadow-inner">
-              <CalendarDays className="h-7 w-7 text-primary animate-pulse" />
+            <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-primary/10 mb-2 ring-1 ring-primary/20 shadow-inner">
+              <CalendarDays className="h-5.5 w-5.5 text-primary animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Selamat Datang</h2>
-            <p className="mt-1.5 text-sm text-slate-500">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Selamat Datang</h2>
+            <p className="mt-1 text-xs text-slate-400">
               Masuk dengan NIP resmi Anda atau melalui Google.
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleNipLogin} className="space-y-4">
+          <form onSubmit={handleNipLogin} className="space-y-3.5">
             {/* NIP */}
-            <div className="space-y-1.5">
-              <Label htmlFor="nip" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Nomor Induk Pegawai (NIP)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="nip" className="text-slate-600 font-bold text-[10px] uppercase tracking-wider">Nomor Induk Pegawai (NIP)</Label>
               <div className="relative">
                 <Input
                   id="nip"
@@ -230,17 +230,17 @@ function isSupabaseOffline(error) {
                   onChange={(e) => setNip(e.target.value)}
                   maxLength={19}
                   required
-                  className="h-11 pl-3 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20"
+                  className="h-10 pl-3 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20 text-sm"
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Password</Label>
-                <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/10">
-                  <KeyRound className="w-3 h-3 text-primary" /> Kredensial = NIP
+                <Label htmlFor="password" className="text-slate-600 font-bold text-[10px] uppercase tracking-wider">Password</Label>
+                <span className="text-[9px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/10">
+                  <KeyRound className="w-2.5 h-2.5 text-primary" /> Kredensial = NIP
                 </span>
               </div>
               <Input
@@ -251,36 +251,36 @@ function isSupabaseOffline(error) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20"
+                className="h-10 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20 text-sm"
               />
             </div>
 
             {/* Bot Protection CAPTCHA Canvas Shield */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+            <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-primary" />
                   Perisai Keamanan (CAPTCHA)
                 </span>
                 <button
                   type="button"
                   onClick={generateCaptcha}
-                  className="p-1.5 text-slate-500 hover:text-primary hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                  className="p-1 text-slate-400 hover:text-primary hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all cursor-pointer"
                   title="Refresh CAPTCHA"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 {/* distorter canvas */}
-                <div className="rounded-xl overflow-hidden border border-slate-200/80 shadow-xs flex-shrink-0 bg-slate-50">
+                <div className="rounded-lg overflow-hidden border border-slate-200/80 shadow-xs flex-shrink-0 bg-slate-50 flex items-center justify-center h-10 w-full sm:w-[140px]">
                   <canvas
                     ref={canvasRef}
                     width={140}
                     height={46}
                     id="captcha-canvas"
-                    className="block select-none pointer-events-none"
+                    className="block select-none pointer-events-none h-full"
                   />
                 </div>
 
@@ -292,14 +292,14 @@ function isSupabaseOffline(error) {
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   maxLength={5}
                   required
-                  className="h-11 rounded-xl bg-white border-slate-200 font-mono tracking-widest text-center text-sm focus-visible:ring-primary/20"
+                  className="h-10 flex-1 w-full rounded-lg bg-white border-slate-200 font-mono tracking-widest text-center text-xs focus-visible:ring-primary/20"
                 />
               </div>
             </div>
 
             {/* Error Message Toast */}
             {error && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-100 text-xs text-red-600 font-semibold text-center leading-relaxed shadow-xs animate-in fade-in slide-in-from-top-2">
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-[11px] text-red-600 font-semibold text-center leading-relaxed shadow-xs animate-in fade-in slide-in-from-top-2">
                 {error}
               </div>
             )}
@@ -308,7 +308,7 @@ function isSupabaseOffline(error) {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 text-sm font-bold tracking-wide transition-all shadow-sm hover:shadow-md rounded-xl bg-primary text-white hover:bg-primary/95 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-10 text-xs font-bold tracking-wide transition-all shadow-sm hover:shadow-md rounded-xl bg-primary text-white hover:bg-primary/95 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
@@ -319,15 +319,15 @@ function isSupabaseOffline(error) {
           </form>
 
           {/* Separator Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200/80"></div>
-            <span className="flex-shrink mx-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Atau</span>
-            <div className="flex-grow border-t border-slate-200/80"></div>
+          <div className="relative flex py-0.5 items-center">
+            <div className="flex-grow border-t border-slate-200/60"></div>
+            <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-350 uppercase tracking-widest">Atau</span>
+            <div className="flex-grow border-t border-slate-200/60"></div>
           </div>
 
           {/* Google Auth Option */}
           <Button 
-            className="group w-full h-11 text-sm font-semibold transition-all shadow-xs hover:shadow-sm rounded-xl flex items-center justify-center gap-2.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer" 
+            className="group w-full h-10 text-xs font-semibold transition-all shadow-xs hover:shadow-sm rounded-xl flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer" 
             variant="outline" 
             onClick={handleGoogleLogin} 
             disabled={loading}
@@ -335,7 +335,7 @@ function isSupabaseOffline(error) {
             {loading ? (
               <div className="w-4 h-4 border-2 border-slate-400 border-t-slate-700 rounded-full animate-spin"></div>
             ) : (
-              <svg className="h-4.5 w-4.5" aria-hidden="true" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -344,11 +344,11 @@ function isSupabaseOffline(error) {
               </svg>
             )}
             <span>Masuk dengan Google</span>
-            {!loading && <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-all -ml-5 group-hover:ml-0" />}
+            {!loading && <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-all -ml-4 group-hover:ml-0" />}
           </Button>
 
           {/* Footer Terms */}
-          <p className="text-center text-[10px] font-medium text-slate-400 leading-normal">
+          <p className="text-center text-[9px] font-medium text-slate-400 leading-normal">
             Sistem Keamanan Terintegrasi Sicerdas. <br/> Seluruh aktivitas akses log dicatat secara resmi.
           </p>
         </div>

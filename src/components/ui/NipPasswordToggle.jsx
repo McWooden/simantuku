@@ -75,7 +75,7 @@ export function NipPasswordToggle({ employee }) {
     setLoading(true)
     setError('')
     setMessage('')
-    
+
     try {
       const res = await toggleNipPasswordAction(employee.id, false)
       if (res?.error) {
@@ -147,7 +147,11 @@ export function NipPasswordToggle({ employee }) {
       })
 
       if (linkError) {
-        setError(`Gagal menautkan akun Google: ${linkError.message}`)
+        if (linkError.message.toLowerCase().includes('manual linking')) {
+          setError("Gagal menautkan Google karena fitur 'Manual Linking' belum diaktifkan di dashboard Supabase. Silakan hubungi Admin untuk mengaktifkannya di menu Authentication -> Settings di Supabase.")
+        } else {
+          setError(`Gagal menautkan akun Google: ${linkError.message}`)
+        }
         setGoogleLoading(false)
       }
     } catch (err) {
@@ -157,50 +161,12 @@ export function NipPasswordToggle({ employee }) {
     }
   }
 
-  // Google identity unlinking
-  const handleUnlinkGoogle = async () => {
-    setGoogleLoading(true)
-    setError('')
-    setMessage('')
-
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError('Pengguna tidak terautentikasi.')
-        setGoogleLoading(false)
-        setShowUnlinkGoogleModal(false)
-        return
-      }
-
-      const googleIdentity = user.identities?.find(identity => identity.provider === 'google')
-      if (!googleIdentity) {
-        setError('Tautan Google tidak ditemukan pada akun ini.')
-        setGoogleLoading(false)
-        setShowUnlinkGoogleModal(false)
-        return
-      }
-
-      const { error: unlinkError } = await supabase.auth.unlinkIdentity(googleIdentity)
-      if (unlinkError) {
-        setError(`Gagal melepas tautan Google: ${unlinkError.message}`)
-      } else {
-        setGoogleLinked(false)
-        setMessage('Tautan akun Google berhasil dilepas.')
-      }
-      setShowUnlinkGoogleModal(false)
-    } catch (err) {
-      console.error(err)
-      setError('Terjadi kesalahan sistem saat melepas tautan Google.')
-    } finally {
-      setGoogleLoading(false)
-    }
-  }
+  // Google identity unlinking (Disabled - Manual unlinking is handled by admin)
 
   return (
     <>
       <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5 space-y-5 shadow-xs relative overflow-hidden transition-all duration-300">
-        
+
         {/* Row 1: Password Login */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -209,24 +175,22 @@ export function NipPasswordToggle({ employee }) {
               Login dengan Password
             </h4>
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
-              Izinkan login langsung menggunakan username dan password Anda. Pengaturan ini tetap berlaku meskipun akun telah ditautkan dengan Google.
+              Login langsung menggunakan username dan password Anda.
             </p>
           </div>
-          
+
           {/* Switch Toggle Password */}
           <button
             type="button"
             onClick={handleToggleClick}
             disabled={loading}
-            className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-              enabled ? 'bg-primary' : 'bg-slate-200'
-            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${enabled ? 'bg-primary' : 'bg-slate-200'
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className="sr-only">Toggle Password Login</span>
             <span
-              className={`pointer-events-none relative inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
-                enabled ? 'translate-x-5.5' : 'translate-x-0'
-              }`}
+              className={`pointer-events-none relative inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out flex items-center justify-center ${enabled ? 'translate-x-5.5' : 'translate-x-0'
+                }`}
             >
               {loading && <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />}
             </span>
@@ -263,15 +227,13 @@ export function NipPasswordToggle({ employee }) {
               }
             }}
             disabled={googleLoading}
-            className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-              googleLinked ? 'bg-primary' : 'bg-slate-200'
-            } ${googleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${googleLinked ? 'bg-primary opacity-60' : 'bg-slate-200'
+              } ${googleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className="sr-only">Toggle Google Account Link</span>
             <span
-              className={`pointer-events-none relative inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
-                googleLinked ? 'translate-x-5.5' : 'translate-x-0'
-              }`}
+              className={`pointer-events-none relative inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out flex items-center justify-center ${googleLinked ? 'translate-x-5.5' : 'translate-x-0'
+                }`}
             >
               {googleLoading && <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />}
             </span>
@@ -433,60 +395,36 @@ export function NipPasswordToggle({ employee }) {
       </Dialog>
 
       {/* 3. Modal Unlink Google */}
-      <Dialog open={showUnlinkGoogleModal} onOpenChange={(open) => !googleLoading && setShowUnlinkGoogleModal(open)}>
+      <Dialog open={showUnlinkGoogleModal} onOpenChange={setShowUnlinkGoogleModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-700">
-              <AlertTriangle className="w-5 h-5 text-rose-500" />
-              Lepas Tautan Google?
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Pelepasan Tautan Google
             </DialogTitle>
             <DialogDescription className="text-slate-500 text-xs">
-              Apakah Anda yakin ingin melepas tautan akun Google Anda dari sistem Sicerdas?
+              Fitur pelepasan tautan (Manual Unlinking) saat ini sedang dalam tahap pengujian beta oleh penyedia sistem (Supabase).
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-2 space-y-3">
-            {!enabled ? (
-              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800 leading-relaxed space-y-2">
-                <strong>⚠️ PERINGATAN KEKUNCI:</strong>
-                <p>
-                  Akses login dengan password Anda saat ini <strong>dinonaktifkan</strong>. 
-                  Jika Anda melepas tautan Google sekarang, Anda tidak akan memiliki metode login aktif apa pun dan akan <strong>terkunci dari sistem</strong>!
-                </p>
-                <p>
-                  Silakan aktifkan login dengan password terlebih dahulu sebelum melepas tautan Google.
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-xs text-slate-600 leading-relaxed">
-                Setelah dilepas, Anda tidak lagi bisa masuk menggunakan tombol &quot;Lanjutkan dengan Google&quot; kecuali Anda menautkannya kembali.
-              </div>
-            )}
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800 leading-relaxed space-y-2">
+              <p>
+                Karena batasan sistem saat ini, pelepasan tautan Google tidak dapat dilakukan secara mandiri dari aplikasi.
+              </p>
+              <p>
+                Jika Anda benar-benar ingin melepas tautan akun Google Anda dari profil ini, silakan hubungi <strong>Administrator</strong> untuk melakukan penghapusan identitas secara manual melalui dashboard database.
+              </p>
+            </div>
           </div>
 
           <DialogFooter className="pt-2">
             <Button
               type="button"
-              variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setShowUnlinkGoogleModal(false)}
-              disabled={googleLoading}
             >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleUnlinkGoogle}
-              disabled={googleLoading || !enabled}
-            >
-              {googleLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Memproses...
-                </>
-              ) : (
-                'Ya, Lepas Tautan'
-              )}
+              Mengerti
             </Button>
           </DialogFooter>
         </DialogContent>
