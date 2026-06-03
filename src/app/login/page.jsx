@@ -96,20 +96,56 @@ export default function LoginPage() {
     return url;
   };
 
+function isSupabaseOffline(error) {
+  if (!error) return false
+  const msg = typeof error === 'string' ? error.toLowerCase() : (error.message || '').toLowerCase()
+  const status = error.status || error.code
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    msg.includes('fetch failed') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('503') ||
+    msg.includes('502') ||
+    msg.includes('service unavailable') ||
+    msg.includes('bad gateway') ||
+    msg.includes('paused') ||
+    msg.includes('connection') ||
+    msg.includes('network') ||
+    msg.includes('timeout')
+  )
+}
+
   // Google Login Auth
   const handleGoogleLogin = async () => {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${getURL()}/auth/callback`,
-      },
-    })
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${getURL()}/auth/callback`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        console.error("Google Auth Error:", error)
+        if (isSupabaseOffline(error)) {
+          setError("Server database (Supabase) sedang tidak aktif/hibernasi karena tidak digunakan. Silakan hubungi Admin untuk mengaktifkan kembali server.")
+        } else {
+          setError(error.message)
+        }
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error("Google Auth Exception:", err)
+      if (isSupabaseOffline(err)) {
+        setError("Server database (Supabase) sedang tidak aktif/hibernasi karena tidak digunakan. Silakan hubungi Admin untuk mengaktifkan kembali server.")
+      } else {
+        setError("Koneksi bermasalah. Silakan periksa jaringan Anda.")
+      }
       setLoading(false)
     }
   }
@@ -133,7 +169,11 @@ export default function LoginPage() {
     try {
       const res = await nipLoginAction(nip.trim(), password.trim())
       if (res?.error) {
-        setError(res.error)
+        if (isSupabaseOffline(res.error)) {
+          setError("Server database (Supabase) sedang tidak aktif/hibernasi karena tidak digunakan. Silakan hubungi Admin untuk mengaktifkan kembali server.")
+        } else {
+          setError(res.error)
+        }
         generateCaptcha()
         setCaptchaInput('')
         setLoading(false)
@@ -143,7 +183,11 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err)
-      setError('Koneksi bermasalah. Silakan periksa jaringan Anda.')
+      if (isSupabaseOffline(err)) {
+        setError("Server database (Supabase) sedang tidak aktif/hibernasi karena tidak digunakan. Silakan hubungi Admin untuk mengaktifkan kembali server.")
+      } else {
+        setError('Koneksi bermasalah. Silakan periksa jaringan Anda.')
+      }
       setLoading(false)
     }
   }
