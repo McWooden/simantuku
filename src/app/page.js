@@ -34,8 +34,8 @@ export default function Home() {
                 </div>
 
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-                  Kelola Cuti Tanpa Ribet, <br className="hidden md:block" />
-                  <span className="text-primary">Tingkatkan Kinerja Pegawai.</span>
+                  Kelola Cuti Praktis, <br className="hidden md:block" />
+                  <span className="text-primary">Kerja Lebih Mudah.</span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl lg:mx-0 mx-auto animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
