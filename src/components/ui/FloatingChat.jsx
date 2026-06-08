@@ -127,7 +127,7 @@ export function FloatingChat() {
     <>
       {/* Chat Window Panel */}
       <div
-        className={`fixed bottom-[88px] sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-[opacity,transform] duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
+        className={`fixed bottom-[88px] sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}
         style={getPanelStyle()}
       >
