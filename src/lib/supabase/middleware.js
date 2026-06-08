@@ -64,7 +64,7 @@ export async function updateSession(request) {
       .eq('auth_id', user.id)
       .single()
 
-    if (!employee || employee.role !== 'admin') {
+    if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) {
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }

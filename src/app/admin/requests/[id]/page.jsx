@@ -23,7 +23,7 @@ export default async function RequestDetailPage({ params }) {
     .eq('auth_id', user.id)
     .single()
 
-  if (adminCheck?.role !== 'admin') redirect('/dashboard')
+  if (adminCheck?.role !== 'admin' && adminCheck?.role !== 'manager') redirect('/dashboard')
 
   // Fetch request details with employee and superiors
   const { data: request, error } = await supabase
@@ -62,6 +62,7 @@ export default async function RequestDetailPage({ params }) {
           <RequestActions 
             request={request} 
             currentEmployeeId={adminCheck.id} 
+            currentEmployeeRole={adminCheck.role} 
             redirectUrl="/admin/requests" 
           />
         )}

@@ -4,15 +4,7 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Profiles Table (Authentication Log)
--- Used for logging auto-created logins before an Admin links them to an official Employee account.
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  username TEXT NOT NULL,
-  email TEXT,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user'))
-);
+
 
 -- 2. Employees Table
 -- The single source of truth for official employee data.
@@ -21,7 +13,7 @@ CREATE TABLE IF NOT EXISTS employees (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user', 'manager')),
   start_date DATE,
   position TEXT,
   unit TEXT,
@@ -117,5 +109,3 @@ SELECT cron.schedule(
     );
     $$
 );
-
-

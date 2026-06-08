@@ -15,7 +15,7 @@ export default async function AdminSignaturesPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (employee?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
   // 2. Fetch all employees to populate the list
   const { data: allEmployees } = await supabase

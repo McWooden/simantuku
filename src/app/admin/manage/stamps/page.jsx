@@ -16,7 +16,7 @@ export default async function AdminStampsPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (employee?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
   return (
     <div className="container mx-auto p-6 max-w-5xl space-y-6">

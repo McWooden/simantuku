@@ -14,7 +14,7 @@ export default async function AdminCleanupPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (employee?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
   const { count } = await supabase
     .from('cuti')

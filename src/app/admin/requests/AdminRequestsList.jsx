@@ -18,7 +18,7 @@ import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
 
 
-export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
+export function AdminRequestsList({ initialRequests = [], currentEmployeeId, currentEmployeeRole }) {
   const [tab, setTab] = useState('mentioned') // 'mentioned' or 'all'
   const [searchQuery, setSearchQuery] = useState('')
   const [showDeleteButtons, setShowDeleteButtons] = useState(false)
@@ -127,9 +127,8 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
         </div>
       </div>
 
-      {/* Requests Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm transition-all duration-300">
-        <Table>
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden md:overflow-visible shadow-sm transition-all duration-300 min-h-[400px]">
+        <Table containerClassName="overflow-x-auto md:overflow-visible">
           <TableHeader className="bg-slate-50/50">
             <TableRow>
               <TableHead className="font-semibold text-slate-700">Pegawai</TableHead>
@@ -215,6 +214,7 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId }) {
                           <RequestActions 
                             request={request} 
                             currentEmployeeId={currentEmployeeId} 
+                            currentEmployeeRole={currentEmployeeRole}
                           />
                         )}
                         {showDeleteButtons && (request.status === 'ditolak' || request.status === 'acc') && (

@@ -16,7 +16,7 @@ export async function updateEmployeeAction(employeeId, data) {
     .eq('auth_id', user.id)
     .single()
 
-  if (adminEmployee?.role !== 'admin') return { error: "Not authorized" }
+  if (adminEmployee?.role !== 'admin' && adminEmployee?.role !== 'manager') return { error: "Not authorized" }
 
   // Basic validation if name is being updated
   if (data.name !== undefined && (!data.name || data.name.trim().length === 0)) {

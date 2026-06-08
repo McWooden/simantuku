@@ -26,7 +26,7 @@ export default async function AdminUsersPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (employee?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
   // Fetch all users and their leave counts
   // For simplicity, we fetch all profiles and all approved 'Tahunan' leaves
@@ -91,7 +91,7 @@ export default async function AdminUsersPage() {
                   </TableCell>
                   <TableCell>{u.nip ?? '-'}</TableCell>
                   <TableCell>
-                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                    <Badge variant={u.role === 'admin' || u.role === 'manager' ? 'default' : 'secondary'}>
                       {u.role.toUpperCase()}
                     </Badge>
                   </TableCell>

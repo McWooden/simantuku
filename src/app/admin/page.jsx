@@ -170,22 +170,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/unlinked-logins" className="group block focus:outline-none md:col-span-2 lg:col-span-1">
-          <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-emerald-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
-            <div className="flex items-start gap-4">
-              <div className="p-4 bg-emerald-100/50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                <Link2 className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">Akses Tertunda (Belum Ditautkan)</h3>
-                <p className="text-muted-foreground">Tautkan akun Google baru ke Direktori Pegawai resmi.</p>
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/manage" className="group block focus:outline-none md:col-span-2 lg:col-span-1">
+        <Link href="/admin/manage" className="group block focus:outline-none md:col-span-2">
           <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-violet-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
             <div className="flex items-start gap-4">

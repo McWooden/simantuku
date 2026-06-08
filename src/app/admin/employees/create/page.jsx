@@ -70,7 +70,7 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
     .eq('auth_id', user.id)
     .single()
 
-  if (currentUser?.role !== 'admin') redirect('/dashboard')
+  if (currentUser?.role !== 'admin' && currentUser?.role !== 'manager') redirect('/dashboard')
 
   const resolvedSearchParams = await searchParams
   const errorMsg = resolvedSearchParams?.error || null
@@ -291,6 +291,7 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
                 <SelectContent>
                   <SelectItem value="user">Pengguna</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                 </SelectContent>
               </Select>
             </div>

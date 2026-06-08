@@ -233,7 +233,7 @@ export async function toggleNipPasswordAction(employeeId, enable, customPassword
   if (!targetEmployee) return { error: "Pegawai tidak ditemukan." }
 
   const isSelf = currentEmployee?.id === targetEmployee.id
-  const isAdmin = currentEmployee?.role === 'admin'
+  const isAdmin = currentEmployee?.role === 'admin' || currentEmployee?.role === 'manager'
 
   if (!isSelf && !isAdmin) {
     return { error: "Anda tidak memiliki akses untuk mengubah pengaturan ini." }

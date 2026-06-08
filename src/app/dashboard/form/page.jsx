@@ -126,7 +126,7 @@ export default function LeaveFormPage() {
             const sisaN2 = b.find(x => x.year === currentYear - 2)?.remaining || 0
             setQuotas({ sisaN, sisaN1, sisaN2 })
 
-            if (employee.role === 'admin') {
+            if (employee.role === 'admin' || employee.role === 'manager') {
               setIsAdmin(true)
               setSelectedOnBehalfId(employee.id)
               const { data: allEmployees, error: empError } = await supabase
@@ -497,7 +497,7 @@ export default function LeaveFormPage() {
                     </div>
                     
                     <div className="mt-3 text-xs text-slate-500 font-medium space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100/80 animate-in fade-in duration-300">
-                      <span className="block text-slate-700 font-semibold mb-1">Saldo Kuota Cuti Anda:</span>
+                      <span className="block text-slate-700 font-semibold mb-1">Saldo Kuota Cuti {employeeName}:</span>
                       <div className="flex flex-col xs:flex-row gap-2 xs:gap-5">
                         <span>Tahun Ini ({new Date().getFullYear()}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN} hari</strong></span>
                         <span>Tahun Lalu ({new Date().getFullYear() - 1}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN1} hari</strong></span>

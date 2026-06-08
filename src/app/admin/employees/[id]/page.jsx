@@ -26,7 +26,7 @@ export default async function UserProfilePage({ params }) {
     .eq('auth_id', user.id)
     .single()
 
-  if (adminEmployee?.role !== 'admin') redirect('/dashboard')
+  if (adminEmployee?.role !== 'admin' && adminEmployee?.role !== 'manager') redirect('/dashboard')
 
   // Fetch the target employee's profile
   const { data: targetEmployee } = await supabase
@@ -213,8 +213,8 @@ export default async function UserProfilePage({ params }) {
               <div className="space-y-1 md:col-span-2">
                 <span className="text-xs text-muted-foreground block">Peran Sistem</span>
                 <div className="mt-1">
-                  <Badge variant={targetEmployee.role === 'admin' ? 'default' : 'secondary'}>
-                    {targetEmployee.role === 'admin' ? 'ADMIN' : 'PENGGUNA'}
+                  <Badge variant={targetEmployee.role === 'admin' || targetEmployee.role === 'manager' ? 'default' : 'secondary'}>
+                    {targetEmployee.role.toUpperCase()}
                   </Badge>
                 </div>
               </div>

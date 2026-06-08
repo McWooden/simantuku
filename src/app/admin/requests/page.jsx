@@ -14,7 +14,7 @@ export default async function AdminRequestsPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (employee?.role !== 'admin') redirect('/dashboard')
+  if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
   // Fetch all requests with employee information
   const { data: requests, error } = await supabase
@@ -41,6 +41,7 @@ export default async function AdminRequestsPage() {
       <AdminRequestsList 
         initialRequests={requests || []} 
         currentEmployeeId={employee.id} 
+        currentEmployeeRole={employee.role}
       />
     </div>
   )

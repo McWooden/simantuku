@@ -72,7 +72,7 @@ export function Navbar() {
             {user && (
               <>
                 <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
-                {role === 'admin' && (
+                {(role === 'admin' || role === 'manager') && (
                   <Link href="/admin" className="hover:text-white transition-colors">Admin</Link>
                 )}
               </>

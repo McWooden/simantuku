@@ -231,8 +231,8 @@ export default async function DashboardPage() {
               <div className="space-y-1 md:col-span-2">
                 <span className="text-xs text-muted-foreground block">Peran Sistem</span>
                 <div className="mt-1">
-                  <Badge variant={employee.role === 'admin' ? 'default' : 'secondary'}>
-                    {employee.role === 'admin' ? 'ADMIN' : 'PENGGUNA'}
+                  <Badge variant={employee.role === 'admin' || employee.role === 'manager' ? 'default' : 'secondary'}>
+                    {employee.role.toUpperCase()}
                   </Badge>
                 </div>
               </div>

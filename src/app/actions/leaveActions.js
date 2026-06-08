@@ -12,7 +12,7 @@ export async function submitLeaveAction(payload) {
   const { data: employee } = await supabase.from('employees').select('id, role').eq('auth_id', user.id).single()
   if (!employee) return { error: "No employee mapped" }
 
-  const isAdmin = employee.role === 'admin';
+  const isAdmin = employee.role === 'admin' || employee.role === 'manager';
   let targetEmployeeId = employee.id;
   let status = 'pending';
 
@@ -78,11 +78,32 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
   const { data: request } = await supabase.from('cuti').select('*').eq('id', requestId).single()
   if (!request) return { error: "Request not found" }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('id, role')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!employee) return { error: "Employee profile not found" }
+
+  const isManager = employee.role === 'manager'
+  const isDesignated = request.atasan_id === employee.id || request.pejabat_id === employee.id
+
+  if (!isManager && !isDesignated) {
+    return { error: "Anda tidak memiliki wewenang untuk mengubah status permohonan ini." }
+  }
+
   const updates = { status: newStatus }
   if (newStatus === 'ditolak') {
     updates.is_atasan_approved = false
     updates.is_pejabat_approved = false
   } else if (newStatus === 'acc') {
+    if (!isManager) {
+      return { error: "Hanya Manager yang dapat langsung menyetujui permohonan." }
+    }
     updates.is_atasan_approved = true
     updates.is_pejabat_approved = true
   }
@@ -115,13 +136,22 @@ export async function signLeaveAction(requestId, roleType) {
   if (!employee) return { error: "Employee profile not found" }
 
   const updates = {}
-  if (roleType === 'atasan') {
-    if (request.atasan_id !== employee.id && employee.role !== 'admin') {
+  const isManager = employee.role === 'manager'
+
+  if (roleType === 'all') {
+    if (!isManager) {
+      return { error: "Anda tidak memiliki wewenang untuk menandatangani semua." }
+    }
+    updates.is_atasan_approved = true
+    updates.is_pejabat_approved = true
+    updates.status = 'acc'
+  } else if (roleType === 'atasan') {
+    if (request.atasan_id !== employee.id && !isManager) {
       return { error: "Anda bukan Atasan Langsung yang ditunjuk untuk permohonan ini." }
     }
     updates.is_atasan_approved = true
   } else if (roleType === 'pejabat') {
-    if (request.pejabat_id !== employee.id && employee.role !== 'admin') {
+    if (request.pejabat_id !== employee.id && !isManager) {
       return { error: "Anda bukan Pejabat Berwenang yang ditunjuk untuk permohonan ini." }
     }
     updates.is_pejabat_approved = true
@@ -130,11 +160,13 @@ export async function signLeaveAction(requestId, roleType) {
   }
 
   // Determine if the leave is now fully approved (both are signed or null)
-  const finalIsAtasanApproved = roleType === 'atasan' ? true : (request.is_atasan_approved || !request.atasan_id)
-  const finalIsPejabatApproved = roleType === 'pejabat' ? true : (request.is_pejabat_approved || !request.pejabat_id)
+  if (roleType !== 'all') {
+    const finalIsAtasanApproved = roleType === 'atasan' ? true : (request.is_atasan_approved || !request.atasan_id)
+    const finalIsPejabatApproved = roleType === 'pejabat' ? true : (request.is_pejabat_approved || !request.pejabat_id)
 
-  if (finalIsAtasanApproved && finalIsPejabatApproved) {
-    updates.status = 'acc'
+    if (finalIsAtasanApproved && finalIsPejabatApproved) {
+      updates.status = 'acc'
+    }
   }
 
   const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
@@ -262,7 +294,7 @@ export async function adminDeleteLeaveAction(requestId) {
   if (!user) return { error: "Not authorized" }
 
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
-  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) return { error: "Unauthorized. Admin/Manager only." }
 
   const { data: request, error: fetchErr } = await supabase
     .from('cuti')
@@ -290,7 +322,7 @@ export async function bulkDeleteRejectedRequestsAction() {
   if (!user) return { error: "Not authorized" }
 
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
-  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) return { error: "Unauthorized. Admin/Manager only." }
 
   const { data: rejectedRequests, error: fetchErr } = await supabase
     .from('cuti')
@@ -334,7 +366,7 @@ export async function deleteStorageFileAction(fullPath) {
   if (!user) return { error: "Not authorized" }
 
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
-  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) return { error: "Unauthorized. Admin/Manager only." }
 
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
   const supabaseAdmin = createSupabaseClient(
@@ -358,7 +390,7 @@ export async function deleteMultipleStorageFilesAction(paths) {
   if (!user) return { error: "Not authorized" }
 
   const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
-  if (!employee || employee.role !== 'admin') return { error: "Unauthorized. Admin only." }
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) return { error: "Unauthorized. Admin/Manager only." }
 
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
   const supabaseAdmin = createSupabaseClient(

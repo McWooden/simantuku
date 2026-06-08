@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle } from 'lucide-react'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()
-  
-  const isActive = exact 
-    ? pathname === href 
+
+  const isActive = exact
+    ? pathname === href
     : pathname.startsWith(href)
 
   const activeClasses = "flex items-center gap-3 px-4 py-3 rounded-2xl bg-primary text-white font-semibold shadow-[0_5px_15px_rgba(var(--primary),0.3)]"
@@ -29,7 +29,7 @@ export function Sidebar({ role, employee, avatarUrl }) {
   return (
     <>
       {/* Mobile Hamburger Button */}
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="lg:hidden absolute top-4 left-4 z-30 p-2 bg-white rounded-xl shadow-sm text-slate-800 border border-slate-100"
       >
@@ -38,7 +38,7 @@ export function Sidebar({ role, employee, avatarUrl }) {
 
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
@@ -52,9 +52,9 @@ export function Sidebar({ role, employee, avatarUrl }) {
         transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        
+
         {/* Mobile Close Button */}
-        <button 
+        <button
           onClick={() => setIsOpen(false)}
           className="lg:hidden absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full"
         >
@@ -81,7 +81,7 @@ export function Sidebar({ role, employee, avatarUrl }) {
             </nav>
           </div>
 
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'manager') && (
             <div className="mb-6">
               <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">ADMINISTRASI</p>
               <nav className="space-y-1.5">
@@ -92,18 +92,31 @@ export function Sidebar({ role, employee, avatarUrl }) {
                   Kotak Masuk Cuti
                 </NavLink>
                 <NavLink href="/admin/manage" icon={FolderArchive} onClick={() => setIsOpen(false)}>
-                  Storage
+                  Penyimpanan
                 </NavLink>
                 <NavLink href="/admin/employees" icon={Users} onClick={() => setIsOpen(false)}>
                   Pegawai
                 </NavLink>
               </nav>
             </div>
-          )}
+          )}        </div>
+
+        {/* FAQ & Support link (above profile) */}
+        <div className="px-6 pt-4 border-t border-slate-50 mt-auto">
+          <div className="px-2">
+            <Link 
+              href="/help" 
+              onClick={() => setIsOpen(false)}
+              className="text-[11px] text-slate-400 hover:text-primary transition-colors font-medium hover:underline flex items-center gap-1.5"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+              FAQ & Support
+            </Link>
+          </div>
         </div>
 
         {/* Fixed Profile & Logout Section */}
-        <div className="px-6 pt-6 border-t border-slate-50 mt-auto mb-2">
+        <div className="px-6 pt-4 border-t border-slate-50 mb-2 mt-2">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-3 min-w-0">
               <img src={avatarUrl} alt="User Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm bg-slate-100 flex-shrink-0" />
