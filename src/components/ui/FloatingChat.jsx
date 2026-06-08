@@ -16,8 +16,9 @@ export function FloatingChat() {
     <>
       {/* Chat Window Panel */}
       <div
-        className={`fixed bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] h-[520px] sm:h-[580px] max-h-[80vh] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
+        className={`fixed bottom-[88px] sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}
+        style={{ height: 'min(520px, 80dvh)', maxHeight: '80dvh' }}
       >
         {/* Header */}
         <div className="bg-slate-950 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
@@ -57,7 +58,7 @@ export function FloatingChat() {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="absolute bottom-[54px] left-0 right-0 h-[68px] bg-[#141726] flex items-center justify-center gap-2 text-[11px] text-slate-100 font-bold tracking-widest uppercase cursor-pointer select-none z-10 w-[95%] mx-auto rounded-[4px]"
+            className="absolute bottom-[54px] left-0 right-0 h-[68px] bg-[#141726] flex items-center justify-center gap-2 text-[11px] text-slate-100 font-bold tracking-widest uppercase cursor-pointer select-none z-10 w-[98%] mx-auto rounded-[4px]"
           >
             <img src="/ragmyai-icon.png" alt="RagmyAI" className="w-5 h-5 rounded object-contain" />
             AI by ragmyai.com
