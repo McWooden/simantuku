@@ -12,6 +12,80 @@ import { CancelLeaveButton } from './CancelLeaveButton'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { NipPasswordToggle } from '@/components/ui/NipPasswordToggle'
 
+function formatRelativeTime(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  const getJakartaParts = (d) => {
+    const jkt = new Date(d.getTime() + (7 * 3600000));
+    return {
+      year: jkt.getUTCFullYear(),
+      month: jkt.getUTCMonth(),
+      day: jkt.getUTCDate(),
+      hours: jkt.getUTCHours(),
+      minutes: jkt.getUTCMinutes()
+    };
+  };
+
+  const dateParts = getJakartaParts(date);
+  const nowParts = getJakartaParts(now);
+
+  const formatTime = () => {
+    const h = String(dateParts.hours).padStart(2, '0');
+    const m = String(dateParts.minutes).padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  const getIndoMonth = () => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[dateParts.month];
+  };
+
+  const isSameDay = dateParts.day === nowParts.day &&
+                    dateParts.month === nowParts.month &&
+                    dateParts.year === nowParts.year;
+
+  const yesterday = new Date(now.getTime() - 24 * 3600000);
+  const yesterdayParts = getJakartaParts(yesterday);
+  const isYesterday = dateParts.day === yesterdayParts.day &&
+                      dateParts.month === yesterdayParts.month &&
+                      dateParts.year === yesterdayParts.year;
+
+  const isSameYear = dateParts.year === nowParts.year;
+
+  if (diffSeconds < 60) {
+    const secs = Math.max(1, diffSeconds);
+    return `Dibuat ${secs} detik lalu`;
+  }
+  
+  if (diffMinutes < 60) {
+    return `Dibuat ${diffMinutes} menit lalu`;
+  }
+
+  if (isSameDay) {
+    return `Dibuat ${diffHours} jam lalu`;
+  }
+
+  if (isYesterday) {
+    return `kemarin - ${formatTime()}`;
+  }
+
+  if (isSameYear) {
+    return `${dateParts.day} ${getIndoMonth()} - ${formatTime()}`;
+  }
+
+  return `${dateParts.day} ${getIndoMonth()} ${dateParts.year} - ${formatTime()}`;
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -276,92 +350,175 @@ export default async function DashboardPage() {
 
         <div className="flex flex-col gap-3">
           {leaveHistory && leaveHistory.length > 0 ? (
-            leaveHistory.map((leave) => {
+            leaveHistory.map((leave, index) => {
               const isAcc = leave.status === 'acc';
               const isRejected = leave.status === 'ditolak';
 
               return (
                 <div
                   key={leave.id}
-                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex items-center justify-between p-5 flex-col sm:flex-row gap-4"
+                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-5"
                 >
-                  <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
+                  {/* Left Column: Icon and Details */}
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className="p-2 rounded-full mt-0.5 bg-slate-50 text-slate-500 border border-slate-100 shrink-0">
                       {isAcc ? <CheckCircle2 className="w-4 h-4" /> :
                         isRejected ? <AlertCircle className="w-4 h-4" /> :
                           <Clock className="w-4 h-4" />}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/dashboard/requests/${leave.id}`} className="hover:underline text-slate-800">
-                        <h4 className="font-semibold text-base mb-0.5">{leave.category}</h4>
-                      </Link>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Link href={`/dashboard/requests/${leave.id}`} className="hover:underline text-slate-800">
+                          <h4 className="font-semibold text-base leading-none">{leave.category}</h4>
+                        </Link>
+                        <span className="text-xs text-slate-400 font-normal leading-none self-center">
+                          • {formatRelativeTime(leave.created_at)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
                         <DateDetailsModal dates={leave.dates}>
-                          <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-center gap-1.5 whitespace-nowrap">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {leave.dates && leave.dates.length > 0 ? (
-                              leave.dates.length === 1 ? (
-                                format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
+                          <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-start gap-1.5 break-words">
+                            <CalendarDays className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                            <span>
+                              {leave.dates && leave.dates.length > 0 ? (
+                                leave.dates.length === 1 ? (
+                                  format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
+                                ) : (
+                                  `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
+                                )
                               ) : (
-                                `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
-                              )
-                            ) : (
-                              format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
-                            )}
+                                format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
+                              )}
+                            </span>
                           </button>
                         </DateDetailsModal>
-                        {leave.note && (
+                        {leave.note && index > 0 && (
                           <>
                             <span className="hidden sm:inline text-slate-300">•</span>
-                            <span className="text-sm text-slate-500 truncate" title={leave.note}>
+                            <span className="text-sm text-slate-500 truncate max-w-[200px] sm:max-w-none" title={leave.note}>
                               {leave.note}
                             </span>
                           </>
                         )}
                       </div>
+
+                      {/* Detail blocks for newest request (Address and Note) */}
+                      {index === 0 && (leave.address || leave.note) && (
+                        <div className="flex flex-col gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
+                          {leave.note && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-bold text-slate-400 font-mono text-[9px] uppercase tracking-wider shrink-0 w-[80px]">Alasan Cuti:</span>
+                              <span className="text-slate-650 font-medium" title={leave.note}>{leave.note}</span>
+                            </div>
+                          )}
+                          
+                          {/* Address Info */}
+                          {leave.address && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-bold text-slate-400 font-mono text-[9px] uppercase tracking-wider shrink-0 w-[80px]">Alamat Cuti:</span>
+                              <span className="text-slate-655 font-medium" title={leave.address}>{leave.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <DownloadPdfButton
-                      pdfData={{
-                        employeeId: employee.id,
-                        status: leave.status,
-                        name: employee.name,
-                        nip: employee.nip,
-                        position: employee.position,
-                        unit: employee.unit,
-                        phone: employee.phone_number,
-                        employeeStartDate: employee.start_date,
-                        category: leave.category,
-                        dates: leave.dates,
-                        note: leave.note,
-                        address: leave.address,
-                        recipientType: leave.recipient_type,
-                        atasan: leave.atasan,
-                        pejabat: leave.pejabat,
-                        isAtasanApproved: leave.is_atasan_approved,
-                        isPejabatApproved: leave.is_pejabat_approved,
-                        quotas: {
-                          sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                          sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                          sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
-                        }
-                      }}
-                      size="sm"
-                      variant="ghost"
-                      className="text-muted-foreground hover:text-primary gap-1.5 h-8 px-2"
-                    />
-                    {leave.status === 'pending' && (
-                      <CancelLeaveButton leaveId={leave.id} />
-                    )}
+                  {/* Middle Column: Progress (Only for newest/first request) */}
+                  {index === 0 ? (
+                    <div className="w-full lg:w-[260px] shrink-0 border-t lg:border-t-0 lg:border-l lg:border-r border-slate-100 lg:px-5 pt-4 lg:pt-0 space-y-3.5">
+                      {/* Progress Bar Header */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-500">Progress Persetujuan</span>
+                        <span className={`font-bold ${isRejected ? 'text-red-600' : isAcc ? 'text-emerald-600' : 'text-slate-700'}`}>
+                          {isRejected ? 'Ditolak' : isAcc ? '100% (Selesai)' : 
+                            ((leave.is_atasan_approved ? 1 : 0) + (leave.is_pejabat_approved ? 1 : 0)) === 1 ? '66% (Disetujui 1/2)' : '33% (Diajukan)'}
+                        </span>
+                      </div>
+                      
+                      {/* Progress Bar Track */}
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isRejected ? 'bg-red-500 w-full' :
+                            isAcc ? 'bg-emerald-500 w-full' :
+                            ((leave.is_atasan_approved ? 1 : 0) + (leave.is_pejabat_approved ? 1 : 0)) === 1 ? 'bg-amber-400 w-2/3' : 'bg-primary/60 w-1/3'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Signature Indicators */}
+                      <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs pt-0.5">
+                        {/* Atasan Indicator */}
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+                          <span className="text-slate-400 font-medium font-mono text-[10px]">Atasan:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${leave.is_atasan_approved ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                            <span className={`font-semibold ${leave.is_atasan_approved ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {leave.is_atasan_approved ? 'Disetujui' : 'Menunggu'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Pejabat Indicator */}
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+                          <span className="text-slate-400 font-medium font-mono text-[10px]">Pejabat:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${leave.is_pejabat_approved ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                            <span className={`font-semibold ${leave.is_pejabat_approved ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {leave.is_pejabat_approved ? 'Disetujui' : 'Menunggu'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="hidden lg:block lg:w-[260px] shrink-0" />
+                  )}
+
+                  {/* Right Column: Status & Actions */}
+                  <div className="flex flex-col items-end gap-1.5 w-full lg:w-auto shrink-0 justify-center border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide
                       ${isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                         isRejected ? 'bg-red-50 text-red-700 border border-red-200' :
                           'bg-amber-50 text-amber-700 border border-amber-200'}`}>
                       {leave.status}
                     </span>
+                    <div className="flex items-center gap-1">
+                      <DownloadPdfButton
+                        pdfData={{
+                          employeeId: employee.id,
+                          status: leave.status,
+                          name: employee.name,
+                          nip: employee.nip,
+                          position: employee.position,
+                          unit: employee.unit,
+                          phone: employee.phone_number,
+                          employeeStartDate: employee.start_date,
+                          category: leave.category,
+                          dates: leave.dates,
+                          note: leave.note,
+                          address: leave.address,
+                          recipientType: leave.recipient_type,
+                          atasan: leave.atasan,
+                          pejabat: leave.pejabat,
+                          isAtasanApproved: leave.is_atasan_approved,
+                          isPejabatApproved: leave.is_pejabat_approved,
+                          quotas: {
+                            sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                            sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
+                            sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
+                          }
+                        }}
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-primary gap-1.5 h-8 px-2"
+                      />
+                      {leave.status === 'pending' && (
+                        <CancelLeaveButton leaveId={leave.id} />
+                      )}
+                    </div>
                   </div>
                 </div>
               )

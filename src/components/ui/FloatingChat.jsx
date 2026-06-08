@@ -6,24 +6,65 @@ import { X, Sparkles } from 'lucide-react'
 export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [shouldRenderIframe, setShouldRenderIframe] = useState(false)
+  const [hasOpened, setHasOpened] = useState(false)
+  const [isAtBottom, setIsAtBottom] = useState(false)
   const [viewport, setViewport] = useState({
     keyboardHeight: 0,
     height: 0,
     isCompact: false,
   })
 
-  // Synchronize iframe rendering with opening transition, delaying unmount for transition to finish
+  // Lazy-load the iframe when opened for the first time
   useEffect(() => {
     if (isOpen) {
-      setShouldRenderIframe(true)
-    } else {
-      const timer = setTimeout(() => {
-        setShouldRenderIframe(false)
-      }, 300) // matches transition duration
-      return () => clearTimeout(timer)
+      setHasOpened(true)
     }
   }, [isOpen])
+
+  // Track if we are at the bottom of the page/scrollable container to hide the floating chat bubble
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleScroll = (e) => {
+      const target = e?.target
+      const isDocument = !target || 
+                         target === document || 
+                         target === window || 
+                         target === document.documentElement || 
+                         target === document.body
+
+      if (isDocument) {
+        const docHeight = document.documentElement.scrollHeight
+        const scrollY = window.scrollY || window.pageYOffset
+        const winHeight = window.innerHeight
+        
+        const isScrollable = docHeight > winHeight + 10
+        const distance = docHeight - (scrollY + winHeight)
+        
+        setIsAtBottom(isScrollable && distance <= 5)
+      } else if (target && typeof target.scrollHeight === 'number' && target.clientHeight > 300) {
+        const scrollHeight = target.scrollHeight
+        const scrollTop = target.scrollTop
+        const clientHeight = target.clientHeight
+        
+        const isScrollable = scrollHeight > clientHeight + 10
+        const distance = scrollHeight - (scrollTop + clientHeight)
+        
+        setIsAtBottom(isScrollable && distance <= 5)
+      }
+    }
+
+    handleScroll()
+
+    // Listen to scroll events on any element in the document during the capture phase
+    window.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('resize', handleScroll)
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -124,29 +165,37 @@ export function FloatingChat() {
 
         {/* Iframe & Overlay Wrapper */}
         <div className="relative flex-1 w-full bg-[#0c0d14]">
-          {shouldRenderIframe && (
+          {hasOpened && (
             <iframe
               src="https://chat.ragmyai.com/SiCerdas"
               className="w-full h-full border-0"
+              style={{ display: isOpen ? 'block' : 'none' }}
               title="SiCerdas AI Chatbot"
-              frameBorder="0"
-              inert={!isOpen || showModal ? "" : undefined}
+              inert={!isOpen || showModal}
             />
           )}
 
           {/* Custom Overlay to block the RagmyAI Free Plan Watermark */}
-          <button
-            type="button"
+          <div
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              setShowModal(true)
             }}
-            className="absolute bottom-[54px] left-0 right-0 h-[68px] bg-[#141726] flex items-center justify-center gap-2 text-[11px] text-slate-100 font-bold tracking-widest uppercase cursor-pointer select-none z-10 w-[98%] mx-auto rounded-[4px]"
+            className="absolute bottom-[51px] left-0 right-0 h-[69px] bg-[#141726] flex items-center justify-center z-10 w-[98%] mx-auto rounded-[4px]"
           >
-            <img src="/ragmyai-icon.png" alt="RagmyAI" className="w-5 h-5 rounded object-contain" />
-            AI by ragmyai.com
-          </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setShowModal(true)
+              }}
+              className="flex items-center justify-center gap-2 text-[11px] text-slate-100 font-bold tracking-widest uppercase cursor-pointer select-none hover:opacity-90 transition-opacity"
+            >
+              <img src="/ragmyai-icon.png" alt="RagmyAI" className="w-5 h-5 rounded object-contain" />
+              AI by ragmyai.com
+            </button>
+          </div>
 
           {/* Integrated Modal Overlay */}
           {showModal && (
@@ -199,7 +248,9 @@ export function FloatingChat() {
             document.activeElement.blur()
           }
         }}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer overflow-hidden"
+        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer overflow-hidden ${
+          (isAtBottom && !isOpen) ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'
+        }`}
         title="Tanya Asisten AI"
       >
         {isOpen ? (
