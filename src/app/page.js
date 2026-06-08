@@ -44,8 +44,8 @@ export default function Home() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
                   <Button size="lg" className="rounded-full px-8 h-12 text-base font-semibold group transition-all hover:pr-6" asChild>
-                    <Link href="/login">
-                      Mulai Sekarang
+                    <Link href="/dashboard/form">
+                      Ajukan Sekarang
                       <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>

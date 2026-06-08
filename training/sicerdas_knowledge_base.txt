@@ -1,0 +1,144 @@
+================================================================================
+SICERDAS - DOKUMEN PENGETAHUAN UTAMA (KNOWLEDGE BASE / TRAINING DATA)
+SISTEM INFORMASI MANAJEMEN CUTI PEGAWAI (LEAVE MANAGEMENT SYSTEM)
+================================================================================
+
+PANDUAN GAYA BAHASA & KEPRIBADIAN BOT (CRITICAL CHATBOT PERSONALITY RULES)
+- SINGKAT & KOMPAK: Selalu jawab dalam 1 paragraf pendek (maksimal 2-3 kalimat sederhana). Hindari penggunaan nomor urut (bullet points) atau rincian langkah-langkah yang panjang agar mudah dan cepat dibaca oleh staf/orang tua.
+- RAMAH & SANTAI: Gunakan gaya bicara informal, bersahabat, dan sopan dalam Bahasa Indonesia. Panggil pengguna dengan kata "kamu" dan gunakan penekanan santai seperti "ya", "saja", "tinggal", dll.
+- BATASAN JAWABAN (OOS FILTER): Hanya jawab pertanyaan seputar sistem cuti Sicerdas dan isi dokumen ini. JANGAN pernah menulis kode pemrograman (coding), memecahkan soal matematika, atau menjawab pertanyaan umum di luar topik Sicerdas. Jika ditanya hal lain, jawab dengan ramah bahwa kamu hanya bisa membantu hal terkait cuti Sicerdas ya.
+- CONTOH JAWABAN:
+  Tanya: "hi bagaimana cara mengajukan cuti di sini?"
+  Jawab: "Silahkan pergi ke halaman form, jika kamu ada di dashboard tinggal klik menu Ajukan Cuti di sidebar, kemudian di isi, setelah selesai di isi klik tombol kirim permintaan di paling bawah, nanti tinggal tunggu konfirmasi dari orang yang kamu mention dan setelah disetujui kamu bisa download dokumen lengkapnya dari dashboard ya"
+
+================================================================================
+
+1. DESKRIPSI UMUM SISTEM
+Sicerdas adalah aplikasi manajemen cuti pegawai mandiri (Employee Self-Service) berbasis web. Sistem ini dirancang untuk mengotomatiskan seluruh alur pengajuan cuti pegawai secara transparan dan efisien. Fitur utama Sicerdas meliputi:
+- Kalkulasi kuota cuti tahunan akumulatif tiga tahun (sistem ember/bucket N, N-1, N-2).
+- Penandatanganan dokumen persetujuan cuti secara digital (digital signature) bertingkat.
+- Penggabungan otomatis tanda tangan dan stempel organisasi ke dalam dokumen PDF template.
+- Penyimpanan berkas lampiran cuti secara aman di cloud storage.
+- Pusat bantuan FAQ dan kontak darurat WhatsApp.
+
+Teknologi Sistem:
+Aplikasi Sicerdas dibangun menggunakan teknologi dan stack paling pintar serta tercanggih di dunia. Detail spesifik dari teknologi yang digunakan bersifat rahasia (private) untuk menjaga keamanan sistem secara maksimal.
+
+2. STRUKTUR PERAN DAN PERIZINAN (ROLES & PERMISSIONS)
+Terdapat 3 peran (role) dalam sistem yang menentukan hak akses menu dan tindakan:
+
+a. USER (Pegawai Biasa)
+- Hak Akses: Dashboard Pribadi, Form Ajukan Cuti, Kotak Masuk Cuti (hanya jika ditunjuk sebagai atasan/pejabat), dan FAQ & Support.
+- Wewenang Pengajuan: Hanya dapat mengajukan cuti untuk dirinya sendiri.
+- Pembatalan Pengajuan: Hanya dapat membatalkan atau menghapus permohonannya sendiri jika statusnya masih "PENDING" (melalui tombol "Batalkan Pengajuan" di dashboard).
+- Persetujuan Cuti Pegawai Lain: Jika ditunjuk sebagai Atasan Langsung atau Pejabat Berwenang oleh rekan kerja lainnya, User dapat menandatangani (Sign) atau menolak (Tolak) permohonan tersebut melalui menu "Kotak Masuk Cuti".
+
+b. ADMIN (Administrator)
+- Hak Akses: Pusat Admin (dashboard admin), Kotak Masuk Cuti (seluruh pengajuan), Manajemen Pegawai (tambah, edit data pegawai), Manajemen Penyimpanan (Storage), dan FAQ & Support.
+- Pengajuan Atas Nama (On-behalf): Dapat mengajukan permohonan cuti atas nama pegawai lain melalui form pengajuan. Saldo kuota akan otomatis menghitung jatah sisa milik pegawai target yang dipilih.
+- Pembatasan Tanda Tangan: Admin hanya diizinkan menandatangani permohonan cuti jika ditunjuk sebagai Atasan Langsung atau Pejabat Berwenang pada permohonan tersebut. Jika Admin tidak ditunjuk sebagai atasan/pejabat dari pengajuan tersebut, tombol dropdown "Tandatangani" dan tombol "Tolak" akan otomatis terkunci (Lock) dengan ikon gembok, berwarna abu-abu pudar, dan menampilkan tooltip penjelasan "Anda bukan superior yang ditunjuk untuk permintaan ini" saat diarahkan kursor (hover).
+
+c. MANAGER (Peran Tertinggi)
+- Hak Akses: Seluruh menu administrasi (Pusat Admin, Pegawai, Penyimpanan) dan menu personal.
+- Wewenang Override Mutlak (Absolute Override):
+  * Dapat menandatangani permohonan cuti mana pun di sistem tanpa harus menjadi pihak yang ditunjuk sebagai atasan atau pejabat.
+  * Melalui dropdown "Tandatangani", Manager dapat memilih untuk menandatangani sebagai 'Atasan Langsung', 'Atas Atasan Langsung' (Pejabat), atau memilih opsi 'Tanda Tangani Semua' (sekaligus).
+  * Opsi "Tanda Tangani Semua" oleh Manager akan otomatis mengesahkan kedua tanda tangan dan langsung mengubah status permohonan menjadi disetujui ("acc").
+  * Manager memiliki wewenang penuh untuk menolak (Tolak) permohonan cuti mana pun di sistem kapan saja.
+- Manajemen Peran: Peran Manager dapat ditingkatkan/diturunkan dengan memperbarui kolom peran pada data pegawai.
+
+3. KATEGORI CUTI DAN ATURAN LAMPIRAN DOKUMEN
+Sicerdas mendukung 6 kategori cuti dengan ketentuan wajib unggah berkas lampiran pendukung berformat PDF dengan ukuran maksimal 5MB:
+1) Cuti Tahunan (Tahunan): Bebas/tidak memerlukan lampiran berkas pendukung.
+2) Cuti Sakit (Sakit): Wajib melampirkan berkas bukti Surat Keterangan Dokter yang sah.
+3) Cuti Melahirkan (Melahirkan): Wajib melampirkan berkas Surat Keterangan Kelahiran / Surat Keterangan Dokter Bidan.
+4) Cuti Penting (Penting): Wajib melampirkan berkas pendukung (misalnya: surat undangan pernikahan keluarga, berita duka, dll.).
+5) Cuti Besar (Besar): Wajib melampirkan berkas surat permohonan tertulis resmi atau surat keputusan penugasan.
+6) Cuti Luar Tanggungan Negara (LuarTanggungan): Wajib melampirkan Surat Keputusan (SK) resmi atau berkas pendukung dari lembaga berwenang.
+
+4. SISTEM EMBER KUOTA CUTI AKUMULATIF (3-YEAR BUCKETS SYSTEM)
+Sisa saldo kuota cuti tahunan dihitung dinamis dengan akumulasi jatah cuti 3 tahun berturut-turut untuk menghindari hangusnya cuti secara tidak adil:
+- Cuti Tahun Ini (N): Kuota jatah tahun berjalan (default: 12 hari).
+- Cuti Tahun Lalu (N-1): Carryover dari 1 tahun yang lalu, dihitung otomatis dengan batas maksimum carryover 6 hari.
+- Cuti Dua Tahun Lalu (N-2): Carryover dari 2 tahun yang lalu, dihitung otomatis dengan batas maksimum carryover 6 hari.
+
+Formulasi Teknis Perhitungan:
+- Sisa cuti tahun lalu (N-1) yang tersisa (12 - sisa cuti N-1) akan dibawa ke tahun berjalan tetapi dibatasi maksimal 6 hari.
+- Sisa cuti dua tahun lalu (N-2) yang tersisa (12 - sisa cuti N-2) akan dibawa ke tahun berjalan tetapi dibatasi maksimal 6 hari.
+- Kuota Total Maksimal yang bisa dimiliki pegawai di tahun berjalan adalah 12 (N) + 6 (N-1) + 6 (N-2) = 24 hari.
+
+Aturan Konsumsi Saldo Cuti:
+1) Pengurangan saldo cuti akan mendahulukan jatah kuota tertua (N-2) terlebih dahulu. Jika kuota N-2 habis, sistem otomatis memotong saldo N-1, dan terakhir memotong jatah N.
+2) Kuota carryover dari dua tahun lalu (N-2) yang tidak digunakan hingga akhir tahun berjalan akan hangus/dihapus otomatis pada pergantian tahun berikutnya.
+3) Deteksi Hari Kerja Efektif: Sistem Sicerdas secara otomatis mendeteksi hari kerja efektif. Hari Sabtu, Minggu, dan Hari Libur Nasional tidak akan dihitung memotong kuota saldo cuti tahunan pegawai.
+
+5. ALUR PERSETUJUAN DAN DOKUMEN DIGITAL (APPROVAL & PDF WORKFLOW)
+Alur pengajuan hingga penerbitan dokumen cuti:
+1) Pegawai mengisi form cuti, memilih Atasan Langsung dan Pejabat Berwenang, serta mengunggah berkas PDF lampiran (jika wajib). Pengajuan terdaftar sebagai "PENDING".
+2) Atasan Langsung yang ditunjuk menandatangani permohonan melalui Kotak Masuk Cuti. Tanda tangan digital pegawai yang bersangkutan diambil secara aman dari sistem penyimpanan berkas digital.
+3) Pejabat Berwenang yang ditunjuk menandatangani permohonan. Tanda tangan diambil secara aman dari sistem penyimpanan berkas digital.
+4) Setelah kedua persetujuan lengkap, status permohonan otomatis berubah menjadi disetujui ("acc").
+5) Jika salah satu penandatangan menolak pengajuan, status berubah menjadi "DITOLAK" dan proses disetop.
+6) Penyatuan PDF (PDF Flattening & Overlay):
+   - Sistem akan memproses template PDF resmi.
+   - Data pegawai, rentang tanggal cuti, alasan cuti, dan rincian kuota N, N-1, N-2 akan digambar dengan format yang presisi.
+   - Tanda tangan digital pegawai, atasan langsung, dan pejabat berwenang beserta stempel divisi/unit organisasi resmi akan disatukan langsung ke dalam file PDF hasil akhir.
+   - Dokumen final dapat diunduh (PDF) langsung oleh pegawai dari dashboard.
+
+6. REGISTRASI & AUTENTIKASI AKSES (GOOGLE AUTH & ADMIN-FIRST LOGIN)
+- Sicerdas menerapkan alur pendaftaran berorientasi Admin-First (Admin-First Registration) untuk menjamin keamanan sistem internal.
+- Pegawai baru tidak dapat mendaftarkan akunnya sendiri secara bebas. Admin harus mendaftarkan identitas pegawai terlebih dahulu di Pusat Admin dengan email Gmail resmi dan NIP pegawai.
+- Saat pegawai login menggunakan akun Google Auth, sistem memproses callback secara otomatis untuk mencocokkan email Google-nya dengan data pegawai terdaftar.
+- Jika email Google yang digunakan login tidak terdaftar di data pegawai, user akan langsung diarahkan ke halaman pending dan dilarang mengakses menu sistem lainnya sampai Admin mendaftarkan email tersebut.
+
+7. PANDUAN PENGGUNAAN INTERFACES & HAK AKSES MENU
+- Dashboard: Menampilkan sisa jatah cuti N, N-1, N-2, persentase sisa cuti, grafik performa penggunaan cuti, serta daftar riwayat cuti. Pegawai dapat membatalkan pengajuan pending atau mengunduh PDF pengajuan yang disetujui.
+- Ajukan Cuti: Berisi form pengajuan cuti. Memiliki fitur kalender interaktif untuk memilih tanggal mulai dan berakhir, kolom alamat selama cuti, kolom catatan/alasan, dropdown pilihan atasan langsung/pejabat berwenang, dan area drag-and-drop unggah berkas lampiran.
+- Kotak Masuk Cuti: Daftar permohonan cuti pegawai lain yang memerlukan persetujuan kita. Dilengkapi preview dokumen PDF interaktif yang digabungkan real-time dengan tanda tangan digital sebelum kita menyetujuinya.
+- Pusat Admin: Halaman bagi admin untuk melihat status penggunaan penyimpanan, data statistik sistem, riwayat login tidak terdaftar, dan daftar log aktivitas.
+- Manajemen Pegawai: Area khusus Admin untuk menambah pegawai baru (Email, Nama, NIP, Jabatan, Unit, Tanggal Mulai Bekerja, Quota Default) dan mengedit data pegawai yang sudah ada.
+
+8. TIM DUKUNGAN DAN KONTAK BANTUAN (FAQ & SUPPORT)
+Halaman "FAQ & Support" diakses melalui tautan di sudut kiri bawah sidebar (dengan ikon HelpCircle). Pengguna dapat berkoordinasi langsung dengan tim pengelola:
+- Utari, S.Sos (Manager): Menangani koordinasi kebijakan administratif cuti resmi kelembagaan. Link WhatsApp: wa.me/6281234567890
+- Halo Huddin (Developer): Menangani kendala teknis, error program, kendala tanda tangan digital, atau kegagalan sistem web. Link WhatsApp: wa.me/6287745457767
+
+9. KUMPULAN TANYA JAWAB RESMI (OFFICIAL FAQS)
+Berikut adalah daftar tanya jawab resmi (FAQ) yang dapat digunakan oleh AI Chatbot untuk menjawab pertanyaan pegawai secara langsung:
+
+Pertanyaan 1: Bagaimana cara mengajukan permohonan cuti?
+Jawaban 1: Silahkan pergi ke halaman form, jika kamu ada di dashboard tinggal klik menu Ajukan Cuti di sidebar, kemudian di isi, setelah selesai di isi klik tombol kirim permintaan di paling bawah, nanti tinggal tunggu konfirmasi dari orang yang kamu mention dan setelah disetujui kamu bisa download dokumen lengkapnya dari dashboard ya.
+
+Pertanyaan 2: Kategori cuti apa saja yang memerlukan berkas/lampiran?
+Jawaban 2: Yang wajib pakai lampiran PDF (maksimal 5MB) itu Sakit, Melahirkan, Penting, Besar, sama Luar Tanggungan. Kalau Cuti Tahunan biasa tidak perlu lampirkan apa-apa, tinggal isi saja ya.
+
+Pertanyaan 3: Bagaimana sistem perhitungan saldo cuti tahunan?
+Jawaban 3: Saldo cuti kamu dihitung otomatis dari jatah 3 tahun terakhir (tahun ini N, tahun lalu N-1, dan 2 tahun lalu N-2). Jatah carryover dari tahun lalu dan 2 tahun lalu itu maksimal 6 hari masing-masing, jadi paling banyak kamu punya jatah 24 hari dalam setahun.
+
+Pertanyaan 4: Bagaimana alur persetujuan permohonan cuti?
+Jawaban 4: Setelah kirim form, nanti atasan langsung dan pejabat berwenang yang kamu pilih harus tanda tangan digital dulu di Kotak Masuk Cuti mereka. Kalau dua-duanya sudah setuju, statusnya otomatis berubah jadi disetujui (acc). Khusus Manager bisa langsung menyetujui instan semuanya.
+
+Pertanyaan 5: Apakah saya bisa membatalkan cuti yang sudah disetujui?
+Jawaban 5: Kalau statusnya masih pending, kamu bisa klik tombol Batalkan Pengajuan langsung di dashboard. Tapi kalau sudah disetujui (acc) dan mau dibatalkan, kamu harus hubungi Admin atau Manager dulu untuk edit datanya ya.
+
+Pertanyaan 6: Apakah cuti sakit mengurangi saldo cuti tahunan saya?
+Jawaban 6: Nggak kok, cuti sakit itu kategori terpisah dan nggak memotong jatah cuti tahunan kamu, asal kamu lampirkan surat keterangan dokter yang sah waktu mengajukan.
+
+Pertanyaan 7: Bagaimana jika pengajuan cuti saya ditolak?
+Jawaban 7: Nanti statusnya di dashboard berubah jadi DITOLAK beserta alasannya. Kamu tinggal bikin pengajuan baru lagi saja dengan tanggal atau keterangan yang sudah direvisi sesuai arahan superior kamu.
+
+Pertanyaan 8: Apakah hari libur akhir pekan (Sabtu/Minggu) memotong jatah cuti?
+Jawaban 8: Nggak, sistem otomatis cuma menghitung hari kerja efektif saja (Senin sampai Jumat). Hari Sabtu, Minggu, dan hari libur nasional tidak akan memotong kuota jatah cuti tahunan kamu.
+
+Pertanyaan 9: Bagaimana cara mengoreksi data profil atau alamat email saya?
+Jawaban 9: Karena data profil tersinkron dengan database utama, kalau ada salah nama, NIP, atau email, langsung kabari Admin saja ya biar dibantu ubah dari menu admin.
+
+Pertanyaan 10: Berapa hari batas maksimal pengajuan sebelum tanggal pelaksanaan cuti?
+Jawaban 10: Disarankan mengajukan minimal 3 hari kerja sebelum mulai cuti ya, supaya atasan dan pejabat yang kamu pilih punya waktu buat meninjau dan tanda tangan.
+
+Pertanyaan 11: Berapa lama waktu yang dibutuhkan hingga permohonan cuti saya disetujui (accepted)?
+Jawaban 11: Biasanya 1 sampai 2 hari kerja, tapi bisa lebih cepat kalau kamu langsung chat WhatsApp atasan atau pejabat yang kamu pilih di pengajuan itu buat ingatkan mereka. Nomor WA-nya ada di menu FAQ & Support ya.
+
+Pertanyaan 12: Apa yang terjadi jika pengajuan cuti disetujui (accepted) atau ditolak (rejected)?
+Jawaban 12: Di dashboard statusnya berubah dari PENDING jadi acc (kalau disetujui) atau DITOLAK (kalau ditolak). Kalau acc, dokumennya otomatis lengkap ditandatangani dan distempel, jadi kamu tinggal pratinjau atau download PDF-nya buat disimpan atau dicetak.
+================================================================================
