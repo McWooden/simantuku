@@ -169,7 +169,6 @@ export function FloatingChat() {
             <iframe
               src="https://chat.ragmyai.com/SiCerdas"
               className="w-full h-full border-0"
-              style={{ display: isOpen ? 'block' : 'none' }}
               title="SiCerdas AI Chatbot"
               inert={!isOpen || showModal}
             />
