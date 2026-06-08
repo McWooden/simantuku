@@ -6,11 +6,24 @@ import { X, Sparkles } from 'lucide-react'
 export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [shouldRenderIframe, setShouldRenderIframe] = useState(false)
   const [viewport, setViewport] = useState({
     keyboardHeight: 0,
     height: 0,
     isCompact: false,
   })
+
+  // Synchronize iframe rendering with opening transition, delaying unmount for transition to finish
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRenderIframe(true)
+    } else {
+      const timer = setTimeout(() => {
+        setShouldRenderIframe(false)
+      }, 300) // matches transition duration
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -95,7 +108,14 @@ export function FloatingChat() {
             </div>
           </div>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsOpen(false)
+              if (typeof document !== 'undefined' && document.activeElement) {
+                document.activeElement.blur()
+              }
+            }}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -104,17 +124,24 @@ export function FloatingChat() {
 
         {/* Iframe & Overlay Wrapper */}
         <div className="relative flex-1 w-full bg-[#0c0d14]">
-          <iframe
-            src="https://chat.ragmyai.com/SiCerdas"
-            className="w-full h-full border-0"
-            title="SiCerdas AI Chatbot"
-            frameBorder="0"
-          />
+          {shouldRenderIframe && (
+            <iframe
+              src="https://chat.ragmyai.com/SiCerdas"
+              className="w-full h-full border-0"
+              title="SiCerdas AI Chatbot"
+              frameBorder="0"
+              inert={!isOpen || showModal ? "" : undefined}
+            />
+          )}
 
           {/* Custom Overlay to block the RagmyAI Free Plan Watermark */}
           <button
             type="button"
-            onClick={() => setShowModal(true)}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowModal(true)
+            }}
             className="absolute bottom-[54px] left-0 right-0 h-[68px] bg-[#141726] flex items-center justify-center gap-2 text-[11px] text-slate-100 font-bold tracking-widest uppercase cursor-pointer select-none z-10 w-[98%] mx-auto rounded-[4px]"
           >
             <img src="/ragmyai-icon.png" alt="RagmyAI" className="w-5 h-5 rounded object-contain" />
@@ -163,7 +190,15 @@ export function FloatingChat() {
 
       {/* Floating Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          const nextState = !isOpen
+          setIsOpen(nextState)
+          if (!nextState && typeof document !== 'undefined' && document.activeElement) {
+            document.activeElement.blur()
+          }
+        }}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer overflow-hidden"
         title="Tanya Asisten AI"
       >
