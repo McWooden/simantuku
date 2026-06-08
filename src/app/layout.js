@@ -1,6 +1,6 @@
 import { Poppins } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
-import Script from "next/script";
+import { FloatingChat } from "@/components/ui/FloatingChat";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -34,11 +34,7 @@ export default function RootLayout({ children }) {
           shadow="0 0 10px var(--primary), 0 0 5px var(--primary)"
         />
         {children}
-        <Script 
-          src="https://chat.ragmyai.com/chat-widget.min.js" 
-          data-page-id="SiCerdas"
-          strategy="afterInteractive"
-        />
+        <FloatingChat />
       </body>
     </html>
   );
