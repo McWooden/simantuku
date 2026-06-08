@@ -51,11 +51,22 @@ export default async function UserProfilePage({ params }) {
     .from('cuti')
     .select(`
       *,
-      atasan:employees!atasan_id(id, name, nip, position),
-      pejabat:employees!pejabat_id(id, name, nip, position)
+      atasan:employees!atasan_id(id, name, nip, position, unit),
+      pejabat:employees!pejabat_id(id, name, nip, position, unit)
     `)
     .eq('employee_id', targetEmployee.id)
     .order('created_at', { ascending: false })
+
+  // Fetch signature status
+  const { data: sigFiles } = await supabase.storage
+    .from('signatures')
+    .list(id)
+  const hasSignature = sigFiles && sigFiles.some(f => f.name === 'signature.png')
+  let signatureUrl = null
+  if (hasSignature) {
+    const { data } = await supabase.storage.from('signatures').createSignedUrl(`${id}/signature.png`, 3600)
+    signatureUrl = data?.signedUrl || null
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
@@ -205,6 +216,20 @@ export default async function UserProfilePage({ params }) {
                   <Badge variant={targetEmployee.role === 'admin' ? 'default' : 'secondary'}>
                     {targetEmployee.role === 'admin' ? 'ADMIN' : 'PENGGUNA'}
                   </Badge>
+                </div>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <span className="text-xs text-muted-foreground block">Tanda Tangan</span>
+                <div className="mt-2">
+                  {signatureUrl ? (
+                    <div className="h-16 w-36 bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-center justify-center overflow-hidden" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '6px 6px' }}>
+                      <img src={signatureUrl} alt="Signature" className="max-h-full max-w-full object-contain drop-shadow-sm" />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-red-500 italic font-medium flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Belum mengunggah tanda tangan resmi
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

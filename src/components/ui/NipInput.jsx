@@ -4,27 +4,34 @@ import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 
 export function NipInput({ id, name, defaultValue, placeholder, className, required }) {
-  const [value, setValue] = useState(defaultValue || '')
-
-  useEffect(() => {
-    if (defaultValue && defaultValue !== value) {
-      setValue(defaultValue)
+  const [value, setValue] = useState(() => {
+    if (defaultValue) {
+      return String(defaultValue).replace(/\s+/g, '').slice(0, 18)
     }
-  }, [defaultValue, value])
+    return ''
+  })
 
-  // Filter out all spaces from the input value using useEffect
+  // Sync defaultValue when it changes, stripping spaces and capping length
   useEffect(() => {
-    if (/\s/.test(value)) {
-      setValue(value.replace(/\s+/g, ''))
+    if (defaultValue) {
+      setValue(String(defaultValue).replace(/\s+/g, '').slice(0, 18))
+    } else {
+      setValue('')
     }
-  }, [value])
+  }, [defaultValue])
+
+  const handleChange = (e) => {
+    // Strip all space characters and limit length to 18
+    const cleaned = e.target.value.replace(/\s+/g, '').slice(0, 18)
+    setValue(cleaned)
+  }
 
   return (
     <Input
       id={id}
       name={name}
       value={value}
-      onChange={(e) => setValue(e.target.value)}
+      onChange={handleChange}
       placeholder={placeholder}
       className={className}
       required={required}

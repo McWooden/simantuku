@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { updateEmployeeAction } from '@/app/actions/employeeActions'
 import { AlertCircle } from 'lucide-react'
 import { NipInput } from '@/components/ui/NipInput'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 
 
 const POSITIONS = [
@@ -44,6 +45,7 @@ const POSITIONS = [
 ]
 
 const UNITS = [
+  "Kecamatan Magelang Utara",
   "Kelurahan Kedungsari",
   "Kelurahan Kramat Selatan",
   "Kelurahan Kramat Utara",
@@ -247,19 +249,13 @@ export default async function CreateOrEditEmployeePage({ searchParams }) {
 
             <div className="space-y-2">
               <Label htmlFor="unit">Unit Kerja</Label>
-              <Input
-                id="unit"
+              <SearchableSelect
                 name="unit"
-                list="units-list"
                 defaultValue={defaultUnit === 'none' ? '' : defaultUnit}
-                placeholder="Ketik atau pilih unit kerja..."
-                className="bg-white"
+                options={UNITS}
+                placeholder="Pilih unit kerja..."
+                searchPlaceholder="Cari unit kerja..."
               />
-              <datalist id="units-list">
-                {UNITS.map(u => (
-                  <option key={u} value={u} />
-                ))}
-              </datalist>
             </div>
 
             <div className="space-y-2">

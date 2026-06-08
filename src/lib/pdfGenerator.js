@@ -62,6 +62,8 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
   let signatureImage = null;
   let atasanSignatureImage = null;
   let pejabatSignatureImage = null;
+  let atasanStampImage = null;
+  let pejabatStampImage = null;
 
   try {
     const { createClient } = await import('@/lib/supabase/client');
@@ -81,8 +83,18 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
       const { data, error } = await supabase.storage.from('signatures').download(`${pejabat.id}/signature.png`);
       if (data && !error) pejabatSignatureImage = await pdfDoc.embedPng(await data.arrayBuffer());
     }
+
+    if (atasan?.unit && isAtasanApproved) {
+      const { data, error } = await supabase.storage.from('signatures').download(`stamps/${atasan.unit}.png`);
+      if (data && !error) atasanStampImage = await pdfDoc.embedPng(await data.arrayBuffer());
+    }
+
+    if (pejabat?.unit && isPejabatApproved) {
+      const { data, error } = await supabase.storage.from('signatures').download(`stamps/${pejabat.unit}.png`);
+      if (data && !error) pejabatStampImage = await pdfDoc.embedPng(await data.arrayBuffer());
+    }
   } catch (e) {
-    console.warn("Could not fetch signatures:", e);
+    console.warn("Could not fetch signatures/stamps:", e);
   }
 
   // Get the first page of the document
@@ -202,6 +214,31 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
   drawSignatureBox(signatureImage, currentCoords.signatureBox);
   drawSignatureBox(atasanSignatureImage, currentCoords.atasanSignatureBox);
   drawSignatureBox(pejabatSignatureImage, currentCoords.pejabatSignatureBox);
+
+  // Draw stamps if present
+  if (atasanStampImage && currentCoords.atasanSignatureBox) {
+    const box = currentCoords.atasanSignatureBox;
+    const size = box.height * 1.5;
+    const atasanStampCoords = {
+      x: box.x + box.width / 2 - 15 - size / 2,
+      y: box.y - 10 - box.height * 0.25,
+      width: size,
+      height: size
+    };
+    drawSignatureBox(atasanStampImage, atasanStampCoords);
+  }
+
+  if (pejabatStampImage && currentCoords.pejabatSignatureBox) {
+    const box = currentCoords.pejabatSignatureBox;
+    const size = box.height * 1.5;
+    const pejabatStampCoords = {
+      x: box.x + box.width / 2 - 15 - size / 2,
+      y: box.y - 10 - box.height * 0.25,
+      width: size,
+      height: size
+    };
+    drawSignatureBox(pejabatStampImage, pejabatStampCoords);
+  }
 
   // Draw signature Name and NIP (centered)
   if (name && currentCoords.signatureName) {

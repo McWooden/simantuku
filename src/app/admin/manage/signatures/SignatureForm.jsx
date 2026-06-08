@@ -7,9 +7,15 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 
 export default function SignatureForm({ employees }) {
   const [selectedUser, setSelectedUser] = useState('')
+
+  const employeeOptions = employees.map(emp => ({
+    value: emp.id,
+    label: `${emp.name}${emp.nip ? ` (NIP: ${emp.nip})` : ''}`
+  }))
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -60,6 +66,9 @@ export default function SignatureForm({ employees }) {
       setUploading(true)
       setStatus(null)
 
+      const selectedEmployee = employees.find(emp => emp.id === selectedUser)
+      const employeeName = selectedEmployee ? selectedEmployee.name : ''
+
       // The path convention: userId/signature.png
       const filePath = `${selectedUser}/signature.png`
 
@@ -75,7 +84,7 @@ export default function SignatureForm({ employees }) {
         throw uploadError
       }
 
-      setStatus({ type: 'success', message: 'Tanda tangan berhasil diunggah!' })
+      setStatus({ type: 'success', message: `Tanda tangan ${employeeName} berhasil diunggah!` })
       setFile(null)
       setPreviewUrl(null)
       setSelectedUser('')
@@ -99,20 +108,15 @@ export default function SignatureForm({ employees }) {
         )}
 
         <div className="space-y-2">
-        <Label htmlFor="employee-select">Pilih Pegawai</Label>
-        <Select value={selectedUser} onValueChange={setSelectedUser}>
-          <SelectTrigger id="employee-select">
-            <SelectValue placeholder="Pilih pegawai..." />
-          </SelectTrigger>
-          <SelectContent>
-            {employees.map((emp) => (
-              <SelectItem key={emp.id} value={emp.id}>
-                {emp.name} {emp.nip ? `(NIP: ${emp.nip})` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <Label htmlFor="employee-select">Pilih Pegawai</Label>
+          <SearchableSelect
+            value={selectedUser}
+            onChange={setSelectedUser}
+            options={employeeOptions}
+            placeholder="Pilih pegawai..."
+            searchPlaceholder="Cari pegawai..."
+          />
+        </div>
 
       <div className="space-y-2">
         <Label htmlFor="signature-file">File Tanda Tangan (Hanya PNG)</Label>

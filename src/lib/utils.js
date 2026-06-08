@@ -11,10 +11,10 @@ export const CUTI_DETAIL_SELECT = `
     id, name, nip, unit, position, phone_number, start_date
   ),
   atasan:employees!atasan_id (
-    id, name, nip, position
+    id, name, nip, position, unit
   ),
   pejabat:employees!pejabat_id (
-    id, name, nip, position
+    id, name, nip, position, unit
   )
 `
 

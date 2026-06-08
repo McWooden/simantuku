@@ -39,14 +39,14 @@ export default function SignatureList({ employees }) {
         if (files && files.some(f => f.name === 'signature.png')) {
           const emp = employees.find(e => e.id === empId)
           const fullPath = `${empId}/signature.png`
-          const { data } = supabase.storage.from('signatures').getPublicUrl(fullPath)
+          const { data } = await supabase.storage.from('signatures').createSignedUrl(fullPath, 3600)
           
           sigList.push({
             employeeId: empId,
             employeeName: emp ? emp.name : 'Unknown Employee',
             employeeNip: emp ? emp.nip : '-',
             fullPath,
-            imageUrl: data?.publicUrl,
+            imageUrl: data?.signedUrl || null,
             fileSize: files.find(f => f.name === 'signature.png')?.metadata?.size || 0
           })
         }

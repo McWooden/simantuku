@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
@@ -63,6 +64,16 @@ export default function LeaveFormPage() {
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState('')
   const [loggedInEmployeeId, setLoggedInEmployeeId] = useState('')
 
+  const pegawaiOptions = employeesList.map(emp => ({
+    value: emp.id,
+    label: `${emp.name}${emp.nip ? ` (NIP: ${emp.nip})` : ''}${emp.id === loggedInEmployeeId ? ' — (Diri Sendiri)' : ''}`
+  }))
+
+  const superiorOptions = superiors.map(s => ({
+    value: s.id,
+    label: `${s.name} - ${s.position}`
+  }))
+
   // Debounce dates for PDF preview
   useEffect(() => {
     setIsDatesApplying(true)
@@ -97,7 +108,7 @@ export default function LeaveFormPage() {
 
             const { data: superiorData, error: superiorError } = await supabase
               .from('employees')
-              .select('id, name, nip, position')
+              .select('id, name, nip, position, unit')
               .eq('is_superior', true)
               .order('name', { ascending: true })
             if (superiorData && !superiorError) {
@@ -353,26 +364,19 @@ export default function LeaveFormPage() {
 
               <div className="flex flex-col space-y-12 pt-2">
                 {isAdmin && (
-                  <div className="space-y-4 bg-indigo-50/40 p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300 w-full overflow-hidden">
+                  <div className="space-y-4 bg-indigo-50/40 p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300 w-full">
                     <h2 className="text-xl font-bold text-indigo-950 flex items-center gap-2 border-b border-indigo-100/60 pb-3">
                       <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span> Ajukan atas Nama Pegawai (Admin)
                     </h2>
                     <div className="space-y-2 w-full max-w-md">
                       <Label htmlFor="onBehalf" className="text-indigo-900 font-semibold">Pilih Pegawai</Label>
-                      <Select value={selectedOnBehalfId || employeeId} onValueChange={handleSelectEmployee}>
-                        <SelectTrigger id="onBehalf" className="h-11 bg-white border-indigo-200 w-full overflow-hidden">
-                          <SelectValue placeholder="Pilih Pegawai" className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-                          {employeesList.map(emp => (
-                            <SelectItem key={emp.id} value={emp.id}>
-                              <span className="truncate block max-w-[220px] xs:max-w-[280px] sm:max-w-sm md:max-w-md">
-                                {emp.name} {emp.nip ? `(NIP: ${emp.nip})` : ''} {emp.id === loggedInEmployeeId ? ' — (Diri Sendiri)' : ''}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={selectedOnBehalfId || employeeId}
+                        onChange={handleSelectEmployee}
+                        options={pegawaiOptions}
+                        placeholder="Pilih Pegawai"
+                        searchPlaceholder="Cari pegawai..."
+                      />
                       <p className="text-xs text-indigo-700/80 font-medium">
                         *Sebagai Admin, Anda dapat mengirim formulir ini atas nama pegawai terpilih. Status pengajuan akan langsung disetujui (ACC).
                       </p>
@@ -581,46 +585,26 @@ export default function LeaveFormPage() {
                         <div className="space-y-4 w-full">
                           <div className="space-y-2 w-full">
                             <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
-                            <Select value={atasanId} onValueChange={setAtasanId}>
-                              <SelectTrigger className={`h-11 bg-white !w-full max-w-full overflow-hidden truncate ${errors.atasanId ? 'border-red-500 ring-red-500' : ''}`}>
-                                <SelectValue placeholder="Pilih Atasan Langsung" className="truncate block max-w-[calc(100%-20px)]" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-3rem)] sm:max-w-md">
-                                {superiors.length === 0 ? (
-                                  <SelectItem value="empty" disabled>Tidak ada data atasan</SelectItem>
-                                ) : (
-                                  superiors.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      <span className="truncate block max-w-[280px] sm:max-w-sm md:max-w-md">
-                                        {s.name} - {s.position}
-                                      </span>
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                              value={atasanId}
+                              onChange={setAtasanId}
+                              options={superiorOptions}
+                              placeholder="Pilih Atasan Langsung"
+                              searchPlaceholder="Cari atasan langsung..."
+                              className={errors.atasanId ? 'border-red-500 ring-red-500' : ''}
+                            />
                           </div>
                           
                           <div className="space-y-2 w-full">
                             <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
-                            <Select value={pejabatId} onValueChange={setPejabatId}>
-                              <SelectTrigger className={`h-11 bg-white !w-full max-w-full overflow-hidden truncate ${errors.pejabatId ? 'border-red-500 ring-red-500' : ''}`}>
-                                <SelectValue placeholder="Pilih Pejabat Berwenang" className="truncate block max-w-[calc(100%-20px)]" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-3rem)] sm:max-w-md">
-                                {superiors.length === 0 ? (
-                                  <SelectItem value="empty" disabled>Tidak ada data pejabat</SelectItem>
-                                ) : (
-                                  superiors.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      <span className="truncate block max-w-[280px] sm:max-w-sm md:max-w-md">
-                                        {s.name} - {s.position}
-                                      </span>
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                              value={pejabatId}
+                              onChange={setPejabatId}
+                              options={superiorOptions}
+                              placeholder="Pilih Pejabat Berwenang"
+                              searchPlaceholder="Cari pejabat berwenang..."
+                              className={errors.pejabatId ? 'border-red-500 ring-red-500' : ''}
+                            />
                           </div>
                         </div>
                       </div>

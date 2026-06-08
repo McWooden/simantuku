@@ -11,6 +11,7 @@ export function ManageTabs() {
     { name: 'Lampiran Cuti', href: '/admin/manage/attachments', icon: FolderArchive },
     { name: 'Daftar Tanda Tangan', href: '/admin/manage/signatures', icon: FileSignature },
     { name: 'Unggah Tanda Tangan', href: '/admin/manage/signatures/upload', icon: UploadCloud },
+    { name: 'Stempel Unit', href: '/admin/manage/stamps', icon: FolderArchive }, // using FolderArchive or another icon
     { name: 'Pembersihan Data', href: '/admin/manage/cleanup', icon: Trash2 }
   ]
 
