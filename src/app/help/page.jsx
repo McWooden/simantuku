@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { MessageSquare, Phone, ShieldAlert, ChevronDown, HelpCircle, Eye, EyeOff } from 'lucide-react'
+import { Navbar } from '@/components/layout/Navbar'
 
 export default function HelpPage() {
   const supportContacts = [
@@ -85,9 +86,11 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl space-y-8 animate-in fade-in duration-300">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Bantuan & Dukungan</h1>
+    <>
+      <Navbar />
+      <div className="container mx-auto pt-32 pb-12 px-6 max-w-5xl space-y-8 animate-in fade-in duration-300">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Bantuan & Dukungan</h1>
         <p className="text-muted-foreground mt-1.5">
           Butuh bantuan teknis atau informasi kebijakan cuti Sicerdas? Temukan jawaban Anda di bawah ini.
         </p>
@@ -239,5 +242,6 @@ export default function HelpPage() {
         </p>
       </div>
     </div>
+    </>
   )
 }

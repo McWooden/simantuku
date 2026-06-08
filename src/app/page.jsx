@@ -19,7 +19,7 @@ export default function Home() {
       <Navbar />
       <div className="flex flex-col min-h-[calc(100vh-64px)] scroll-smooth">
         {/* Hero Section */}
-        <section className="relative py-20 px-4 md:py-32 overflow-hidden">
+        <section className="relative pt-32 pb-20 px-4 md:py-32 overflow-hidden">
 
           <div className="container mx-auto max-w-6xl">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">

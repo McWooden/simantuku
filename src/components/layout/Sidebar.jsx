@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle, PlayCircle } from 'lucide-react'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()
@@ -25,6 +25,10 @@ function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
 
 export function Sidebar({ role, employee, avatarUrl }) {
   const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
+
+  const isHelpActive = pathname === '/help'
+  const isTutorialActive = pathname === '/tutorial'
 
   return (
     <>
@@ -101,33 +105,65 @@ export function Sidebar({ role, employee, avatarUrl }) {
             </div>
           )}        </div>
 
-        {/* FAQ & Support link (above profile) */}
+        {/* FAQ & Support & Tutorial links (above profile) */}
         <div className="px-6 pt-4 border-t border-slate-50 mt-auto">
-          <div className="px-2">
-            <Link 
-              href="/help" 
+          <div className="px-2 flex items-center gap-4">
+            <Link
+              href="/help"
               onClick={() => setIsOpen(false)}
-              className="text-[11px] text-slate-400 hover:text-primary transition-colors font-medium hover:underline flex items-center gap-1.5"
+              className={`group text-[11px] font-semibold flex items-center gap-1.5 ${isHelpActive
+                  ? 'text-primary'
+                  : 'text-slate-400 hover:text-primary'
+                }`}
             >
-              <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+              <HelpCircle className={`w-3.5 h-3.5 ${isHelpActive
+                  ? 'text-primary'
+                  : 'text-slate-400 group-hover:text-primary'
+                }`} />
               FAQ & Support
+            </Link>
+
+            <Link
+              href="/tutorial"
+              onClick={() => setIsOpen(false)}
+              className={`group text-[11px] font-semibold flex items-center gap-1.5 ${isTutorialActive
+                  ? 'text-primary'
+                  : 'text-slate-400 hover:text-primary'
+                }`}
+            >
+              <PlayCircle className={`w-3.5 h-3.5 ${isTutorialActive
+                  ? 'text-primary'
+                  : 'text-slate-400 group-hover:text-primary'
+                }`} />
+              Tutorial
             </Link>
           </div>
         </div>
 
-        {/* Fixed Profile & Logout Section */}
+        {/* Fixed Profile & Logout Section / Login Button */}
         <div className="px-6 pt-4 border-t border-slate-50 mb-2 mt-2">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <img src={avatarUrl} alt="User Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm bg-slate-100 flex-shrink-0" />
-              <span className="font-bold text-[13px] text-slate-800 tracking-tight truncate">{employee.name}</span>
+          {employee ? (
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <img src={avatarUrl} alt="User Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm bg-slate-100 flex-shrink-0" />
+                <span className="font-bold text-[13px] text-slate-800 tracking-tight truncate">{employee.name}</span>
+              </div>
+              <form action="/auth/signout" method="POST">
+                <button type="submit" className="p-2 text-slate-400 hover:text-orange-500 transition-colors flex-shrink-0" title="Logout">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </form>
             </div>
-            <form action="/auth/signout" method="POST">
-              <button type="submit" className="p-2 text-slate-400 hover:text-orange-500 transition-colors flex-shrink-0" title="Logout">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
+          ) : (
+            <div className="px-2">
+              <Link 
+                href="/login"
+                className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/95 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer"
+              >
+                Masuk ke Aplikasi
+              </Link>
+            </div>
+          )}
         </div>
       </aside>
     </>

@@ -11,7 +11,18 @@ const poppins = Poppins({
 
 export const metadata = {
   title: "Sicerdas",
-  description: "Advanced Leave Management System",
+  description: "Advanced Leave Management System - Kelola cuti instansi Anda secara praktis, cepat, dan otomatis.",
+  icons: {
+    icon: [
+      { url: "/favicon-io/favicon.ico" },
+      { url: "/favicon-io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon-io/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/favicon-io/site.webmanifest",
 };
 
 // Navbar removed from global layout
