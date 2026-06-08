@@ -1,24 +1,81 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Sparkles } from 'lucide-react'
 
 export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [viewport, setViewport] = useState({
+    keyboardHeight: 0,
+    height: 0,
+    isCompact: false,
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleResize = () => {
+      const vv = window.visualViewport
+      if (!vv) return
+
+      const layoutHeight = window.innerHeight
+      const keyboardHeight = Math.max(0, layoutHeight - (vv.offsetTop + vv.height))
+      const isCompact = vv.height < 600
+
+      setViewport({
+        keyboardHeight,
+        height: vv.height,
+        isCompact,
+      })
+    }
+
+    // Initialize layout
+    handleResize()
+
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', handleResize)
+      vv.addEventListener('scroll', handleResize)
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', handleResize)
+        vv.removeEventListener('scroll', handleResize)
+      }
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [isOpen])
 
   const handleGoToRagmy = () => {
     window.open("https://ragmyai.com/", "_blank", "noopener,noreferrer")
     setShowModal(false)
   }
 
+  const getPanelStyle = () => {
+    if (viewport.isCompact && viewport.height > 0 && isOpen) {
+      return {
+        bottom: `${viewport.keyboardHeight + 12}px`,
+        height: `${viewport.height - 24}px`,
+        maxHeight: `${viewport.height - 24}px`,
+      }
+    }
+    return {
+      height: 'min(520px, 80dvh)',
+      maxHeight: '80dvh',
+    }
+  }
+
   return (
     <>
       {/* Chat Window Panel */}
       <div
-        className={`fixed bottom-[88px] sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
+        className={`fixed bottom-[88px] sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#0c0d14] border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden transition-[opacity,transform] duration-300 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}
-        style={{ height: 'min(520px, 80dvh)', maxHeight: '80dvh' }}
+        style={getPanelStyle()}
       >
         {/* Header */}
         <div className="bg-slate-950 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
