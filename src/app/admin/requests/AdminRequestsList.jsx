@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { 
   Table, 
   TableBody, 
@@ -48,6 +48,31 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId, cur
     const query = searchQuery.toLowerCase()
     
     return employeeName.includes(query) || category.includes(query)
+  })
+
+  // Group finalRequests by month/year based on created_at
+  const groupedRequests = []
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  const currentYear = new Date().getFullYear()
+
+  finalRequests.forEach(request => {
+    const date = new Date(request.created_at)
+    const month = date.getMonth()
+    const year = date.getFullYear()
+    
+    const groupKey = year === currentYear 
+      ? monthNames[month] 
+      : `${monthNames[month]} ${year}`
+
+    let group = groupedRequests.find(g => g.key === groupKey)
+    if (!group) {
+      group = { key: groupKey, items: [] }
+      groupedRequests.push(group)
+    }
+    group.items.push(request)
   })
 
   return (
@@ -141,90 +166,102 @@ export function AdminRequestsList({ initialRequests = [], currentEmployeeId, cur
             </TableRow>
           </TableHeader>
           <TableBody>
-            {finalRequests.length > 0 ? (
-              finalRequests.map((request) => {
-                const isUserMentioned = request.atasan_id === currentEmployeeId || request.pejabat_id === currentEmployeeId;
-                return (
-                  <TableRow 
-                    key={request.id} 
-                    className={`hover:bg-slate-50/60 transition-colors ${
-                      isUserMentioned && request.status === 'pending' && tab === 'all' 
-                        ? 'bg-primary-[5%]/10 border-l-4 border-l-primary' 
-                        : ''
-                    }`}
-                  >
-                    <TableCell className="font-medium max-w-[150px] truncate pl-6">
-                      <Link href={`/admin/requests/${request.id}`} className="hover:underline text-primary font-semibold flex items-center gap-1.5 group" title="Lihat Detail">
-                        {request.employee?.name || 'Pegawai Tidak Dikenal'}
-                        <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-primary" />
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-600 font-medium">{request.category}</span>
-                    </TableCell>
-                    <TableCell>
-                      <DateDetailsModal dates={request.dates} />
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-semibold text-slate-700">{request.dates.length} hari</span>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const requiresAttachment = ['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(request.category);
-                        if (request.attachment_url) {
-                          return (
-                            <a 
-                              href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/leave_attachments/${request.attachment_url}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-7.5 h-7.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors shadow-xs"
-                              title="Lihat File"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </a>
-                          )
-                        }
-                        
-                        if (requiresAttachment) {
-                          return (
-                            <div className="inline-flex items-center justify-center w-7.5 h-7.5 text-amber-700 bg-amber-50 rounded-lg border border-amber-200 shadow-xs" title="Tanpa Lampiran">
-                              <AlertCircle className="w-4 h-4" />
-                            </div>
-                          )
-                        }
-                        
-                        return <span className="text-xs text-slate-400 font-medium">-</span>;
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={request.status === 'pending' ? 'outline' : 'secondary'}
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                          request.status === 'acc' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                          request.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' : 
-                          'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        {request.status === 'acc' ? 'DISETUJUI' : request.status === 'ditolak' ? 'DITOLAK' : 'PENDING'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <div className="flex items-center justify-end gap-2">
-                        {request.status === 'pending' && (
-                          <RequestActions 
-                            request={request} 
-                            currentEmployeeId={currentEmployeeId} 
-                            currentEmployeeRole={currentEmployeeRole}
-                          />
-                        )}
-                        {showDeleteButtons && (request.status === 'ditolak' || request.status === 'acc') && (
-                          <AdminDeleteRequestButton requestId={request.id} />
-                        )}
-                      </div>
+            {groupedRequests.length > 0 ? (
+              groupedRequests.map((group) => (
+                <Fragment key={group.key}>
+                  {/* Group Header Row */}
+                  <TableRow className="bg-slate-50/40 hover:bg-slate-50/40 border-y border-slate-200/40 select-none pointer-events-none">
+                    <TableCell colSpan={7} className="py-2.5 pl-6 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                      {group.key}
                     </TableCell>
                   </TableRow>
-                )
-              })
+                  
+                  {/* Group Items */}
+                  {group.items.map((request) => {
+                    const isUserMentioned = request.atasan_id === currentEmployeeId || request.pejabat_id === currentEmployeeId;
+                    return (
+                      <TableRow 
+                        key={request.id} 
+                        className={`hover:bg-slate-50/60 transition-colors ${
+                          isUserMentioned && request.status === 'pending' && tab === 'all' 
+                            ? 'bg-primary-[5%]/10 border-l-4 border-l-primary' 
+                            : ''
+                        }`}
+                      >
+                        <TableCell className="font-medium max-w-[150px] truncate pl-6">
+                          <Link href={`/admin/requests/${request.id}`} className="hover:underline text-primary font-semibold flex items-center gap-1.5 group" title="Lihat Detail">
+                            {request.employee?.name || 'Pegawai Tidak Dikenal'}
+                            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-primary" />
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-slate-600 font-medium">{request.category}</span>
+                        </TableCell>
+                        <TableCell>
+                          <DateDetailsModal dates={request.dates} />
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-slate-700">{request.dates.length} hari</span>
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const requiresAttachment = ['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(request.category);
+                            if (request.attachment_url) {
+                              return (
+                                <a 
+                                  href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/leave_attachments/${request.attachment_url}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center w-7.5 h-7.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors shadow-xs"
+                                  title="Lihat File"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </a>
+                              )
+                            }
+                            
+                            if (requiresAttachment) {
+                              return (
+                                <div className="inline-flex items-center justify-center w-7.5 h-7.5 text-amber-700 bg-amber-50 rounded-lg border border-amber-200 shadow-xs" title="Tanpa Lampiran">
+                                  <AlertCircle className="w-4 h-4" />
+                                </div>
+                              )
+                            }
+                            
+                            return <span className="text-xs text-slate-400 font-medium">-</span>;
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={request.status === 'pending' ? 'outline' : 'secondary'}
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
+                              request.status === 'acc' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                              request.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            {request.status === 'acc' ? 'DISETUJUI' : request.status === 'ditolak' ? 'DITOLAK' : 'PENDING'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {request.status === 'pending' && (
+                              <RequestActions 
+                                request={request} 
+                                currentEmployeeId={currentEmployeeId} 
+                                currentEmployeeRole={currentEmployeeRole}
+                              />
+                            )}
+                            {showDeleteButtons && (request.status === 'ditolak' || request.status === 'acc') && (
+                              <AdminDeleteRequestButton requestId={request.id} />
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </Fragment>
+              ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-48 text-center bg-slate-50/20">

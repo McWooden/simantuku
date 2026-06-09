@@ -23,7 +23,13 @@ function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   )
 }
 
-export function Sidebar({ role, employee, avatarUrl }) {
+export function Sidebar({
+  role,
+  employee,
+  avatarUrl,
+  pendingMyActionCount = 0,
+  pendingOthersActionCount = 0
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
 
@@ -71,7 +77,7 @@ export function Sidebar({ role, employee, avatarUrl }) {
             alt="Sicerdas Logo"
             className="w-8 h-8 object-contain transition-transform group-hover:scale-105"
           />
-          <span className="font-bold text-xl tracking-tight text-slate-800 group-hover:text-primary transition-colors">Sicerdas</span>
+          <span className="font-bold text-xl tracking-tight text-slate-800 group-hover:text-primary transition-colors">SiCerdas</span>
         </a>
 
         <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
@@ -95,7 +101,16 @@ export function Sidebar({ role, employee, avatarUrl }) {
                   Pusat Admin
                 </NavLink>
                 <NavLink href="/admin/requests" icon={Inbox} onClick={() => setIsOpen(false)}>
-                  Kotak Masuk Cuti
+                  <span className="flex-1">Kotak Masuk Cuti</span>
+                  {pendingMyActionCount > 0 ? (
+                    <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
+                      {pendingMyActionCount}
+                    </span>
+                  ) : pendingOthersActionCount > 0 ? (
+                    <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {pendingOthersActionCount}
+                    </span>
+                  ) : null}
                 </NavLink>
                 <NavLink href="/admin/manage" icon={FolderArchive} onClick={() => setIsOpen(false)}>
                   Penyimpanan
@@ -114,13 +129,13 @@ export function Sidebar({ role, employee, avatarUrl }) {
               href="/help"
               onClick={() => setIsOpen(false)}
               className={`group text-[11px] font-semibold flex items-center gap-1.5 ${isHelpActive
-                  ? 'text-primary'
-                  : 'text-slate-400 hover:text-primary'
+                ? 'text-primary'
+                : 'text-slate-400 hover:text-primary'
                 }`}
             >
               <HelpCircle className={`w-3.5 h-3.5 ${isHelpActive
-                  ? 'text-primary'
-                  : 'text-slate-400 group-hover:text-primary'
+                ? 'text-primary'
+                : 'text-slate-400 group-hover:text-primary'
                 }`} />
               FAQ & Support
             </Link>
@@ -129,13 +144,13 @@ export function Sidebar({ role, employee, avatarUrl }) {
               href="/tutorial"
               onClick={() => setIsOpen(false)}
               className={`group text-[11px] font-semibold flex items-center gap-1.5 ${isTutorialActive
-                  ? 'text-primary'
-                  : 'text-slate-400 hover:text-primary'
+                ? 'text-primary'
+                : 'text-slate-400 hover:text-primary'
                 }`}
             >
               <PlayCircle className={`w-3.5 h-3.5 ${isTutorialActive
-                  ? 'text-primary'
-                  : 'text-slate-400 group-hover:text-primary'
+                ? 'text-primary'
+                : 'text-slate-400 group-hover:text-primary'
                 }`} />
               Tutorial
             </Link>
@@ -158,7 +173,7 @@ export function Sidebar({ role, employee, avatarUrl }) {
             </div>
           ) : (
             <div className="px-2">
-              <Link 
+              <Link
                 href="/login"
                 className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/95 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer"
               >

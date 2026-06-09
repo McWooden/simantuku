@@ -48,11 +48,45 @@ export async function AppShell({ children }) {
     .order('created_at', { ascending: false })
     .limit(3)
 
+  // 6. Fetch pending requests where this employee is a signatory
+  let pendingMyActionCount = 0
+  let pendingOthersActionCount = 0
+
+  if (employee?.role === 'admin' || employee?.role === 'manager') {
+    const { data: pendingRequests } = await supabase
+      .from('cuti')
+      .select('atasan_id, pejabat_id, is_atasan_approved, is_pejabat_approved, status')
+      .eq('status', 'pending')
+      .or(`atasan_id.eq.${employee.id},pejabat_id.eq.${employee.id}`)
+
+    if (pendingRequests) {
+      for (const req of pendingRequests) {
+        const isAtasan = req.atasan_id === employee.id
+        const isPejabat = req.pejabat_id === employee.id
+
+        const needAtasanSign = isAtasan && !req.is_atasan_approved
+        const needPejabatSign = isPejabat && !req.is_pejabat_approved
+
+        if (needAtasanSign || needPejabatSign) {
+          pendingMyActionCount++
+        } else {
+          pendingOthersActionCount++
+        }
+      }
+    }
+  }
+
   return (
     <div className="flex bg-slate-50 overflow-hidden font-sans w-full" style={{ height: "100vh" }}>
       
       {/* 1. LEFT SIDEBAR */}
-      <Sidebar role={employee.role} employee={employee} avatarUrl={avatarUrl} />
+      <Sidebar 
+        role={employee.role} 
+        employee={employee} 
+        avatarUrl={avatarUrl} 
+        pendingMyActionCount={pendingMyActionCount}
+        pendingOthersActionCount={pendingOthersActionCount}
+      />
 
       {/* CENTER CONTENT CONTAINER */}
       <div className="flex flex-col flex-1 overflow-hidden h-full rounded-none lg:rounded-l-[2rem] bg-slate-50/50">

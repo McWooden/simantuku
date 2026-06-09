@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { nipLoginAction } from '@/app/actions/authActions'
 import Link from 'next/link'
-import { CalendarDays, ArrowRight, ArrowLeft, RefreshCw, KeyRound, ShieldAlert } from 'lucide-react'
+import { CalendarDays, ArrowRight, ArrowLeft, RefreshCw, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [nip, setNip] = useState('')
   const [password, setPassword] = useState('')
-  
+  const [showPassword, setShowPassword] = useState(false)
+
   // Captcha states
   const [captchaText, setCaptchaText] = useState('')
   const [captchaInput, setCaptchaInput] = useState('')
@@ -38,28 +39,28 @@ export default function LoginPage() {
       text += chars.charAt(Math.floor(Math.random() * chars.length))
     }
     setCaptchaText(text)
-    
+
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    
+
     // Clear canvas and draw clean slate background
     ctx.fillStyle = '#f8fafc' // slate-50 matches tailwind
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    
+
     // 1. Draw noise lines
     for (let i = 0; i < 6; i++) {
-      ctx.strokeStyle = `rgba(${Math.floor(Math.random()*130)}, ${Math.floor(Math.random()*130)}, ${Math.floor(Math.random()*130)}, 0.2)`
+      ctx.strokeStyle = `rgba(${Math.floor(Math.random() * 130)}, ${Math.floor(Math.random() * 130)}, ${Math.floor(Math.random() * 130)}, 0.2)`
       ctx.lineWidth = 1.5 + Math.random() * 2
       ctx.beginPath()
       ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height)
       ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height)
       ctx.stroke()
     }
-    
+
     // 2. Draw noise dots
     for (let i = 0; i < 35; i++) {
-      ctx.fillStyle = `rgba(${Math.floor(Math.random()*130)}, ${Math.floor(Math.random()*130)}, ${Math.floor(Math.random()*130)}, 0.25)`
+      ctx.fillStyle = `rgba(${Math.floor(Math.random() * 130)}, ${Math.floor(Math.random() * 130)}, ${Math.floor(Math.random() * 130)}, 0.25)`
       ctx.beginPath()
       ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1 + Math.random() * 1.5, 0, Math.PI * 2)
       ctx.fill()
@@ -72,8 +73,8 @@ export default function LoginPage() {
       const char = text.charAt(i)
       ctx.font = `bold ${24 + Math.random() * 5}px sans-serif`
       // Distorted dark theme-tailored colors
-      ctx.fillStyle = `rgb(${Math.floor(Math.random()*90)}, ${Math.floor(Math.random()*90)}, ${Math.floor(Math.random()*150) + 60})`
-      
+      ctx.fillStyle = `rgb(${Math.floor(Math.random() * 90)}, ${Math.floor(Math.random() * 90)}, ${Math.floor(Math.random() * 150) + 60})`
+
       ctx.save()
       // Translate coordinates to character slot center
       ctx.translate((i * charWidth) + (charWidth / 2), canvas.height / 2)
@@ -98,32 +99,32 @@ export default function LoginPage() {
       process?.env?.NEXT_PUBLIC_SITE_URL ??
       process?.env?.NEXT_PUBLIC_VERCEL_URL ??
       (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-      
+
     url = url.startsWith('http') ? url : `https://${url}`;
     url = url.endsWith('/') ? url.slice(0, -1) : url;
     return url;
   };
 
-function isSupabaseOffline(error) {
-  if (!error) return false
-  const msg = typeof error === 'string' ? error.toLowerCase() : (error.message || '').toLowerCase()
-  const status = error.status || error.code
-  return (
-    status === 502 ||
-    status === 503 ||
-    status === 504 ||
-    msg.includes('fetch failed') ||
-    msg.includes('failed to fetch') ||
-    msg.includes('503') ||
-    msg.includes('502') ||
-    msg.includes('service unavailable') ||
-    msg.includes('bad gateway') ||
-    msg.includes('paused') ||
-    msg.includes('connection') ||
-    msg.includes('network') ||
-    msg.includes('timeout')
-  )
-}
+  function isSupabaseOffline(error) {
+    if (!error) return false
+    const msg = typeof error === 'string' ? error.toLowerCase() : (error.message || '').toLowerCase()
+    const status = error.status || error.code
+    return (
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      msg.includes('fetch failed') ||
+      msg.includes('failed to fetch') ||
+      msg.includes('503') ||
+      msg.includes('502') ||
+      msg.includes('service unavailable') ||
+      msg.includes('bad gateway') ||
+      msg.includes('paused') ||
+      msg.includes('connection') ||
+      msg.includes('network') ||
+      msg.includes('timeout')
+    )
+  }
 
   // Google Login Auth
   const handleGoogleLogin = async () => {
@@ -208,11 +209,11 @@ function isSupabaseOffline(error) {
           Kembali
         </Link>
       </div>
-      
+
       <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-2 sm:p-4">
         {/* Login Card */}
         <div className="w-full max-w-md space-y-4.5 bg-white p-5 sm:p-7 rounded-3xl shadow-xl border border-slate-100/60 ring-1 ring-slate-900/5 relative overflow-hidden my-auto">
-          
+
           {/* Header */}
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-primary/10 mb-2 ring-1 ring-primary/20 shadow-inner">
@@ -233,6 +234,7 @@ function isSupabaseOffline(error) {
                 <Input
                   id="nip"
                   name="nip"
+                  autoComplete="username"
                   placeholder="Masukkan NIP resmi Anda..."
                   value={nip}
                   onChange={(e) => setNip(e.target.value)}
@@ -250,16 +252,31 @@ function isSupabaseOffline(error) {
                   <KeyRound className="w-2.5 h-2.5 text-primary" /> Kredensial = NIP
                 </span>
               </div>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Masukkan password NIP Anda..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-10 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20 text-sm"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Masukkan password NIP Anda..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-10 rounded-xl bg-slate-50/50 border-slate-200 focus-visible:ring-primary/20 text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none focus:text-slate-600 transition-colors"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Bot Protection CAPTCHA Canvas Shield */}
@@ -333,10 +350,10 @@ function isSupabaseOffline(error) {
           </div>
 
           {/* Google Auth Option */}
-          <Button 
-            className="group w-full h-10 text-xs font-semibold transition-all shadow-xs hover:shadow-sm rounded-xl flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer" 
-            variant="outline" 
-            onClick={handleGoogleLogin} 
+          <Button
+            className="group w-full h-10 text-xs font-semibold transition-all shadow-xs hover:shadow-sm rounded-xl flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+            variant="outline"
+            onClick={handleGoogleLogin}
             disabled={loading}
           >
             {loading ? (
@@ -356,7 +373,7 @@ function isSupabaseOffline(error) {
 
           {/* Footer Terms */}
           <p className="text-center text-[9px] font-medium text-slate-400 leading-normal">
-            Sistem Keamanan Terintegrasi Sicerdas. <br/> Seluruh aktivitas akses log dicatat secara resmi.
+            Sistem Keamanan Terintegrasi Sicerdas. <br /> Seluruh aktivitas akses log dicatat secara resmi.
           </p>
         </div>
       </div>
