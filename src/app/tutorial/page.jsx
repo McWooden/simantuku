@@ -1,25 +1,20 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { PlayCircle, ShieldCheck, FileText, ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { PlayCircle, FileText, ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 
 export default function TutorialPage() {
   const tutorials = [
     {
-      id: 'login',
-      title: 'Cara Login ke Aplikasi',
-      description: 'Langkah-langkah login menggunakan email institusi, upgrade NIP, dan kata sandi Anda.',
-      icon: ShieldCheck,
-      videoUrl: 'https://www.youtube.com/embed/placeholder_login_video_id', // Placeholder - replace with your video ID
-    },
-    {
       id: 'request-leave',
-      title: 'Cara Mengajukan Cuti',
+      title: 'Cara Mengajukan Cuti di KMU SiCerdas',
       description: 'Panduan lengkap mengisi formulir pengajuan cuti dan memantau status persetujuan.',
       icon: FileText,
-      videoUrl: 'https://www.youtube.com/embed/placeholder_request_video_id', // Placeholder - replace with your video ID
+      videoUrl: 'https://www.youtube.com/embed/_wQZNK_AFkQ?si=jWzTEyW5nQnbmY4Z',
+      watchUrl: 'https://youtu.be/_wQZNK_AFkQ',
     }
   ]
 
@@ -55,11 +50,12 @@ export default function TutorialPage() {
                     className="absolute inset-0 w-full h-full border-0"
                     src={item.videoUrl}
                     title={item.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
                   />
                 </div>
-                <CardContent className="p-6 space-y-3">
+                <CardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-2 text-primary">
                     <Icon className="w-5 h-5 shrink-0" />
                     <h3 className="font-bold text-lg text-slate-800">{item.title}</h3>
@@ -67,6 +63,14 @@ export default function TutorialPage() {
                   <p className="text-sm text-slate-500 leading-relaxed">
                     {item.description}
                   </p>
+                  <div className="pt-2">
+                    <Button asChild variant="outline" className="rounded-2xl gap-2 font-semibold">
+                      <a href={item.watchUrl} target="_blank" rel="noopener noreferrer">
+                        Tonton di YouTube
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )

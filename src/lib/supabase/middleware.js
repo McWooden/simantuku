@@ -39,6 +39,10 @@ export async function updateSession(request) {
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/help') &&
+    !request.nextUrl.pathname.startsWith('/tutorial') &&
+    !request.nextUrl.pathname.startsWith('/favicon-io/') &&
+    !request.nextUrl.pathname.startsWith('/templates/') &&
     request.nextUrl.pathname !== '/'
   ) {
     url.pathname = '/login'
