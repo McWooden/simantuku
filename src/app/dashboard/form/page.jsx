@@ -20,7 +20,14 @@ import {
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function LeaveFormPage() {
   const router = useRouter()
@@ -63,6 +70,24 @@ export default function LeaveFormPage() {
   const [employeesList, setEmployeesList] = useState([])
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState('')
   const [loggedInEmployeeId, setLoggedInEmployeeId] = useState('')
+  const [showRedirectModal, setShowRedirectModal] = useState(false)
+  const [countdown, setCountdown] = useState(3)
+
+  // Countdown redirect effect
+  useEffect(() => {
+    if (!showRedirectModal) return
+
+    if (countdown === 0) {
+      router.push('/dashboard')
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(prev => prev - 1)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [showRedirectModal, countdown, router])
 
   const pegawaiOptions = employeesList.map(emp => ({
     value: emp.id,
@@ -320,7 +345,8 @@ export default function LeaveFormPage() {
       if (res?.error) {
         setError(res.error)
       } else {
-        router.push('/dashboard')
+        setShowRedirectModal(true)
+        setCountdown(3)
       }
     } catch (err) {
       console.error('Submission error:', err)
@@ -696,6 +722,31 @@ export default function LeaveFormPage() {
         )}
 
       </div>
+
+      {/* Redirect Countdown Modal */}
+      <Dialog open={showRedirectModal} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden flex flex-col items-center justify-center p-8 text-center rounded-3xl border border-slate-100 shadow-2xl">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-100 shadow-sm animate-bounce">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-bold text-slate-800 text-center">Permohonan Berhasil Dikirim!</DialogTitle>
+            <DialogDescription className="text-slate-500 text-sm text-center">
+              Dokumen pengajuan cuti Anda telah berhasil dibuat dan dikirim ke sistem.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-lg border border-primary/20">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75"></span>
+              {countdown}
+            </div>
+            <p className="text-xs text-slate-400 font-semibold mt-2 tracking-wide">
+              Mengalihkan ke Dashboard...
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -12,6 +12,20 @@ import { CancelLeaveButton } from './CancelLeaveButton'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { NipPasswordToggle } from '@/components/ui/NipPasswordToggle'
 
+function parseDateString(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr;
+  
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+  }
+  return new Date(dateStr);
+}
+
 function formatRelativeTime(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -380,17 +394,15 @@ export default async function DashboardPage() {
                         <DateDetailsModal dates={leave.dates}>
                           <button suppressHydrationWarning className="text-sm text-muted-foreground hover:text-primary transition-colors text-left flex items-start gap-1.5 break-words">
                             <CalendarDays className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                            <span>
-                              {leave.dates && leave.dates.length > 0 ? (
-                                leave.dates.length === 1 ? (
-                                  format(new Date(leave.dates[0]), "d MMMM yyyy", { locale: id })
-                                ) : (
-                                  `${format(new Date(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(new Date(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
-                                )
+                            {leave.dates && leave.dates.length > 0 ? (
+                              leave.dates.length === 1 ? (
+                                format(parseDateString(leave.dates[0]), "d MMMM yyyy", { locale: id })
                               ) : (
-                                format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
-                              )}
-                            </span>
+                                `${format(parseDateString(leave.dates[0]), "d MMM yyyy", { locale: id })} - ${format(parseDateString(leave.dates[leave.dates.length - 1]), "d MMM", { locale: id })} (${leave.dates.length} days)`
+                              )
+                            ) : (
+                              format(new Date(leave.created_at), "d MMMM yyyy", { locale: id })
+                            )}
                           </button>
                         </DateDetailsModal>
                         {leave.note && index > 0 && (
