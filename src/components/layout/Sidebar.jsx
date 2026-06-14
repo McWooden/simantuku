@@ -41,9 +41,12 @@ export function Sidebar({
       {/* Mobile Hamburger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="lg:hidden absolute top-4 left-4 z-30 p-2 bg-white rounded-xl shadow-sm text-slate-800 border border-slate-100"
+        className="lg:hidden absolute top-4 left-4 z-30 p-1.5 bg-white rounded-xl shadow-sm text-slate-800 border border-slate-100"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="w-5 h-5" />
+        {(pendingMyActionCount > 0 || pendingOthersActionCount > 0) && (
+          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500" />
+        )}
       </button>
 
       {/* Mobile Overlay */}

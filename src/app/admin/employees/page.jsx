@@ -2,17 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getLeaveQuotaOverviewAction } from '@/app/actions/leaveActions'
 import Link from 'next/link'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { EmployeeList } from './EmployeeList'
 
 export default async function AdminUsersPage() {
   const supabase = await createClient()
@@ -56,66 +48,19 @@ export default async function AdminUsersPage() {
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Direktori Pegawai</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Direktori Pegawai</h1>
+          <p className="text-slate-500 mt-1">
             Lihat daftar semua pegawai dan saldo cuti mereka.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="bg-primary hover:bg-primary/90 shadow-sm rounded-xl">
           <Link href="/admin/employees/create">
             <Plus className="mr-2 h-4 w-4" /> Tambah Pegawai
           </Link>
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>NIP</TableHead>
-              <TableHead>Peran</TableHead>
-              <TableHead>Bergabung</TableHead>
-              <TableHead>Cuti Tahunan Terpakai</TableHead>
-              <TableHead>Sisa Kuota</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {userStats && userStats.length > 0 ? (
-              userStats.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">
-                    <Link href={`/admin/employees/${u.id}`} className="text-primary hover:underline">
-                      {u.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{u.nip ?? '-'}</TableCell>
-                  <TableCell>
-                    <Badge variant={u.role === 'admin' || u.role === 'manager' ? 'default' : 'secondary'}>
-                      {u.role.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{u.daysUsed} hari</TableCell>
-                  <TableCell>
-                    <span className={u.remaining < 3 ? "text-red-500 font-bold" : ""}>
-                      {u.remaining} hari
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  Tidak ada pegawai ditemukan.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <EmployeeList initialEmployees={userStats || []} />
     </div>
   )
 }
