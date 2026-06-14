@@ -80,7 +80,7 @@ export function Sidebar({
             alt="Sicerdas Logo"
             className="w-8 h-8 object-contain transition-transform group-hover:scale-105"
           />
-          <span className="font-bold text-xl tracking-tight text-slate-800 group-hover:text-primary transition-colors">SiCerdas</span>
+          <span className="font-bold text-xl tracking-tight text-slate-800 group-hover:text-primary transition-colors">Si Cerdas</span>
         </a>
 
         <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
