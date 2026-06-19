@@ -220,7 +220,7 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
     const box = currentCoords.atasanSignatureBox;
     const size = box.height * 1.5;
     const atasanStampCoords = {
-      x: box.x + box.width / 2 - 15 - size / 2,
+      x: box.x + box.width / 2 - 35 - size / 2,
       y: box.y - 10 - box.height * 0.25,
       width: size,
       height: size
@@ -232,7 +232,7 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
     const box = currentCoords.pejabatSignatureBox;
     const size = box.height * 1.5;
     const pejabatStampCoords = {
-      x: box.x + box.width / 2 - 15 - size / 2,
+      x: box.x + box.width / 2 - 45 - size / 2,
       y: box.y - 10 - box.height * 0.25,
       width: size,
       height: size
