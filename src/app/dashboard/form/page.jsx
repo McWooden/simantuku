@@ -53,6 +53,10 @@ export default function LeaveFormPage() {
     pejabatId: false
   })
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
+  const [includeN, setIncludeN] = useState(true)
+  const [includeN1, setIncludeN1] = useState(true)
+  const [includeN2, setIncludeN2] = useState(true)
+
   const [customCoords, setCustomCoords] = useState(COORDS)
   const [superiors, setSuperiors] = useState([])
   const [atasanId, setAtasanId] = useState('')
@@ -66,7 +70,38 @@ export default function LeaveFormPage() {
   const [note, setNote] = useState('')
   const [recipientType, setRecipientType] = useState('Camat')
 
+  // Quota allocation logic
+  const datesCount = dates.length
+  let remainingDays = datesCount
+  let calcN2 = 0
+  let calcN1 = 0
+  let calcN = 0
+
+  if (category === 'Tahunan') {
+    if (includeN2) {
+      calcN2 = Math.min(remainingDays, quotas.sisaN2)
+      remainingDays -= calcN2
+    }
+    if (includeN1) {
+      calcN1 = Math.min(remainingDays, quotas.sisaN1)
+      remainingDays -= calcN1
+    }
+    if (includeN) {
+      calcN = Math.min(remainingDays, quotas.sisaN)
+      remainingDays -= calcN
+    }
+  }
+
+  const isQuotaInsufficient = category === 'Tahunan' && remainingDays > 0
+  const totalCheckedQuota = (includeN2 ? quotas.sisaN2 : 0) + (includeN1 ? quotas.sisaN1 : 0) + (includeN ? quotas.sisaN : 0)
+
+  // Smart locking rule
+  const disableN2 = includeN2 && (totalCheckedQuota - quotas.sisaN2) < datesCount
+  const disableN1 = includeN1 && (totalCheckedQuota - quotas.sisaN1) < datesCount
+  const disableN = includeN && (totalCheckedQuota - quotas.sisaN) < datesCount
+
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isManager, setIsManager] = useState(false)
   const [employeesList, setEmployeesList] = useState([])
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState('')
   const [loggedInEmployeeId, setLoggedInEmployeeId] = useState('')
@@ -108,6 +143,13 @@ export default function LeaveFormPage() {
     }, 1500)
     return () => clearTimeout(handler)
   }, [dates])
+
+  // Reset checkboxes when category or selected employee changes
+  useEffect(() => {
+    setIncludeN(true)
+    setIncludeN1(true)
+    setIncludeN2(true)
+  }, [category, selectedOnBehalfId])
 
   // Check for pending requests on mount
   useEffect(() => {
@@ -153,6 +195,7 @@ export default function LeaveFormPage() {
 
             if (employee.role === 'admin' || employee.role === 'manager') {
               setIsAdmin(true)
+              if (employee.role === 'manager') setIsManager(true)
               setSelectedOnBehalfId(employee.id)
               const { data: allEmployees, error: empError } = await supabase
                 .from('employees')
@@ -225,7 +268,11 @@ export default function LeaveFormPage() {
           category,
           dates: debouncedDates,
           note,
-          quotas,
+          quotas: {
+            sisaN: quotas.sisaN - calcN,
+            sisaN1: quotas.sisaN1 - calcN1,
+            sisaN2: quotas.sisaN2 - calcN2
+          },
           customCoords,
           atasan: superiors.find(s => s.id === atasanId),
           pejabat: superiors.find(s => s.id === pejabatId),
@@ -245,7 +292,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeId, employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate])
+  }, [employeeId, employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate, calcN, calcN1, calcN2])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -337,7 +384,13 @@ export default function LeaveFormPage() {
         pejabatId,
         attachmentUrl,
         onBehalfEmployeeId: isAdmin ? selectedOnBehalfId : null,
-        status: isAdmin ? statusToSubmit : 'pending'
+        status: isAdmin ? statusToSubmit : 'pending',
+        includeN,
+        includeN1,
+        includeN2,
+        n_reduced: calcN,
+        n1_reduced: calcN1,
+        n2_reduced: calcN2
       }
 
       const res = await submitLeaveAction(payload);
@@ -531,6 +584,89 @@ export default function LeaveFormPage() {
                       </div>
                     </div>
 
+                    {category === 'Tahunan' && dates.length > 0 && (
+                      <div className="mt-4 p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-3.5 animate-in fade-in zoom-in duration-300 w-full max-w-sm">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Alokasi Potongan Kuota</h3>
+                          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{dates.length} Hari Diajukan</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-relaxed">
+                          Sistem akan memotong cuti berurutan (FIFO). Anda bisa membatalkan pilihan untuk mengunci kuota agar tidak terpakai.
+                        </p>
+
+                        <div className="space-y-2.5 pt-1">
+                          {/* Checkbox N-2 */}
+                          {quotas.sisaN2 > 0 && (
+                            <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN2 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={includeN2}
+                                disabled={disableN2}
+                                onChange={(e) => setIncludeN2(e.target.checked)}
+                                className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-slate-700">Kuota 2 Tahun Lalu ({new Date().getFullYear() - 2})</span>
+                                <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN2} hari | Terpotong: <strong className="text-slate-700">{calcN2} hari</strong></span>
+                              </div>
+                            </label>
+                          )}
+
+                          {/* Checkbox N-1 */}
+                          {quotas.sisaN1 > 0 && (
+                            <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN1 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={includeN1}
+                                disabled={disableN1}
+                                onChange={(e) => setIncludeN1(e.target.checked)}
+                                className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-slate-700">Kuota Tahun Lalu ({new Date().getFullYear() - 1})</span>
+                                <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN1} hari | Terpotong: <strong className="text-slate-700">{calcN1} hari</strong></span>
+                              </div>
+                            </label>
+                          )}
+
+                          {/* Checkbox N */}
+                          <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={includeN}
+                              disabled={disableN}
+                              onChange={(e) => setIncludeN(e.target.checked)}
+                              className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-slate-700">Kuota Tahun Ini ({new Date().getFullYear()})</span>
+                              <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN} hari | Terpotong: <strong className="text-slate-700">{calcN} hari</strong></span>
+                            </div>
+                          </label>
+                        </div>
+
+                        {isQuotaInsufficient && (
+                          <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                            <p className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Kuota Terpilih Kurang!</p>
+                            <p className="opacity-90 font-medium">
+                              Diperlukan {dates.length} hari, tetapi hanya tersedia {totalCheckedQuota} hari pada kuota aktif.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIncludeN(true)
+                                setIncludeN1(true)
+                                setIncludeN2(true)
+                              }}
+                              className="text-primary hover:underline font-bold inline-block pt-0.5 text-left"
+                            >
+                              Reset ke Rekomendasi (FIFO)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {dates.length === 0 && (
                       <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
                         Harap pilih setidaknya satu tanggal dari kalender.
@@ -656,27 +792,29 @@ export default function LeaveFormPage() {
                       variant="outline"
                       size="lg" 
                       className="min-w-[150px] shadow-sm rounded-full" 
-                      disabled={loading || checkingPending}
+                      disabled={loading || checkingPending || isQuotaInsufficient}
                       onClick={() => handleSubmit(null, 'pending')}
                     >
                       Kirim Permintaan
                     </Button>
-                    <Button 
-                      type="button" 
-                      size="lg" 
-                      className="min-w-[180px] shadow-sm rounded-full bg-primary hover:bg-primary/95 text-white" 
-                      disabled={loading || checkingPending}
-                      onClick={() => handleSubmit(null, 'acc')}
-                    >
-                      Kirim Permintaan & Setujui
-                    </Button>
+                    {isManager && (
+                      <Button 
+                        type="button" 
+                        size="lg" 
+                        className="min-w-[180px] shadow-sm rounded-full bg-primary hover:bg-primary/95 text-white" 
+                        disabled={loading || checkingPending || isQuotaInsufficient}
+                        onClick={() => handleSubmit(null, 'acc')}
+                      >
+                        Kirim Permintaan & Setujui
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <Button 
                     type="submit" 
                     size="lg" 
                     className="min-w-[150px] shadow-sm rounded-full" 
-                    disabled={loading || hasPending || checkingPending}
+                    disabled={loading || hasPending || checkingPending || isQuotaInsufficient}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
@@ -694,7 +832,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
+                 <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas: { sisaN: quotas.sisaN - calcN, sisaN1: quotas.sisaN1 - calcN1, sisaN2: quotas.sisaN2 - calcN2 }, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, FileText, CheckCircle, ArrowRight, Clock, ShieldCheck, Activity, Link2, FileSignature, FolderArchive } from 'lucide-react'
 
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
 
@@ -22,7 +23,7 @@ export default async function AdminDashboardPage() {
     .eq('auth_id', user.id)
     .single()
 
-  if (!employee || employee.role !== 'admin') {
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) {
     redirect('/dashboard')
   }
 
@@ -185,6 +186,8 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
       </div>
+
+
     </div>
   )
 }

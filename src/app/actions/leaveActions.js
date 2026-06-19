@@ -39,32 +39,113 @@ export async function submitLeaveAction(payload) {
   const daysRequested = dates.length;
   if (daysRequested === 0) return { error: "No dates selected" }
 
+  let n_reduced = 0;
+  let n1_reduced = 0;
+  let n2_reduced = 0;
+
   if (category === 'Tahunan') {
-    // 2. Cross-year validation (enforces same calendar year)
+    // Cross-year validation (enforces same calendar year)
     const years = new Set(dates.map(d => new Date(d).getFullYear()))
     if (years.size > 1) {
       return { error: "Semua tanggal cuti harus berada dalam tahun kalender yang sama." }
+    }
+    const currentYear = new Date(dates[0]).getFullYear()
+
+    // Get current secure balances from the database chain
+    const { data: parentRequest } = await supabase
+      .from('cuti')
+      .select('n_balance, n1_balance, n2_balance')
+      .eq('employee_id', targetEmployeeId)
+      .eq('status', 'acc')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    let availableN, availableN1, availableN2;
+    if (parentRequest) {
+      availableN = parentRequest.n_balance;
+      availableN1 = parentRequest.n1_balance;
+      availableN2 = parentRequest.n2_balance;
+    } else {
+      const { data: targetEmp } = await supabase
+        .from('employees')
+        .select('start_date')
+        .eq('id', targetEmployeeId)
+        .single()
+      const startYear = targetEmp?.start_date ? new Date(targetEmp.start_date).getFullYear() : currentYear
+      const carryover_n1 = (currentYear - 1 >= startYear) ? 6 : 0
+      const carryover_n2 = (currentYear - 2 >= startYear) ? 6 : 0
+      availableN = 12;
+      availableN1 = carryover_n1;
+      availableN2 = carryover_n2;
+    }
+
+    // Run server-side FIFO allocation based on checkbox indicators sent in payload
+    const { includeN = true, includeN1 = true, includeN2 = true } = payload;
+    let remaining = daysRequested;
+
+    if (includeN2) {
+      n2_reduced = Math.min(remaining, availableN2);
+      remaining -= n2_reduced;
+    }
+    if (includeN1) {
+      n1_reduced = Math.min(remaining, availableN1);
+      remaining -= n1_reduced;
+    }
+    if (includeN) {
+      n_reduced = Math.min(remaining, availableN);
+      remaining -= n_reduced;
+    }
+
+    if (remaining > 0) {
+      return { error: "Kuota cuti aktif yang dipilih tidak mencukupi untuk jumlah hari yang diajukan." }
+    }
+
+    // Server-side validation: assert client payload math matches server calculations exactly
+    if (
+      payload.n_reduced !== undefined &&
+      (payload.n_reduced !== n_reduced || payload.n1_reduced !== n1_reduced || payload.n2_reduced !== n2_reduced)
+    ) {
+      return { error: "Deteksi manipulasi data quota. Perhitungan server dan client tidak sinkron." }
     }
   }
 
   // Insert request directly into the cuti table
   const isAcc = status === 'acc';
-  const { error: cutiErr } = await supabase.from('cuti').insert({
-    employee_id: targetEmployeeId,
-    category,
-    dates,
-    note,
-    address,
-    recipient_type: recipientType,
-    atasan_id: atasanId || null,
-    pejabat_id: pejabatId || null,
-    attachment_url: attachmentUrl || null,
-    status: status,
-    is_atasan_approved: isAcc,
-    is_pejabat_approved: isAcc
-  })
+  const { data: insertedCuti, error: cutiErr } = await supabase
+    .from('cuti')
+    .insert({
+      employee_id: targetEmployeeId,
+      category,
+      dates,
+      note,
+      address,
+      recipient_type: recipientType,
+      atasan_id: atasanId || null,
+      pejabat_id: pejabatId || null,
+      attachment_url: attachmentUrl || null,
+      status: isAcc ? 'acc' : status,
+      is_atasan_approved: isAcc,
+      is_pejabat_approved: isAcc,
+      n_reduced,
+      n1_reduced,
+      n2_reduced
+    })
+    .select('id')
+    .single()
 
   if (cutiErr) return { error: cutiErr.message }
+
+  if (isAcc) {
+    // Invoke the PostgreSQL stored procedure to handle row locking, balance calculations, and chaining
+    const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: insertedCuti.id });
+    if (rpcErr) {
+      // rollback manually by deleting the inserted record
+      await supabase.from('cuti').delete().eq('id', insertedCuti.id)
+      return { error: rpcErr.message }
+    }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/form')
@@ -96,20 +177,22 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
     return { error: "Anda tidak memiliki wewenang untuk mengubah status permohonan ini." }
   }
 
-  const updates = { status: newStatus }
-  if (newStatus === 'ditolak') {
-    updates.is_atasan_approved = false
-    updates.is_pejabat_approved = false
-  } else if (newStatus === 'acc') {
+  if (newStatus === 'acc') {
     if (!isManager) {
       return { error: "Hanya Manager yang dapat langsung menyetujui permohonan." }
     }
-    updates.is_atasan_approved = true
-    updates.is_pejabat_approved = true
+    // Call the Supabase RPC stored procedure to approve the leave request atomically with pessimistic locking
+    const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
+    if (rpcErr) return { error: rpcErr.message }
+  } else {
+    const updates = { status: newStatus }
+    if (newStatus === 'ditolak') {
+      updates.is_atasan_approved = false
+      updates.is_pejabat_approved = false
+    }
+    const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
+    if (error) return { error: error.message }
   }
-
-  const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
-  if (error) return { error: error.message }
 
   revalidatePath('/admin/requests')
   revalidatePath('/dashboard')
@@ -142,35 +225,41 @@ export async function signLeaveAction(requestId, roleType) {
     if (!isManager) {
       return { error: "Anda tidak memiliki wewenang untuk menandatangani semua." }
     }
-    updates.is_atasan_approved = true
-    updates.is_pejabat_approved = true
-    updates.status = 'acc'
-  } else if (roleType === 'atasan') {
-    if (request.atasan_id !== employee.id && !isManager) {
-      return { error: "Anda bukan Atasan Langsung yang ditunjuk untuk permohonan ini." }
-    }
-    updates.is_atasan_approved = true
-  } else if (roleType === 'pejabat') {
-    if (request.pejabat_id !== employee.id && !isManager) {
-      return { error: "Anda bukan Pejabat Berwenang yang ditunjuk untuk permohonan ini." }
-    }
-    updates.is_pejabat_approved = true
+    // Call the Supabase RPC stored procedure to approve the leave request atomically
+    const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
+    if (rpcErr) return { error: rpcErr.message }
   } else {
-    return { error: "Tipe tanda tangan tidak valid." }
-  }
+    if (roleType === 'atasan') {
+      if (request.atasan_id !== employee.id && !isManager) {
+        return { error: "Anda bukan Atasan Langsung yang ditunjuk untuk permohonan ini." }
+      }
+      updates.is_atasan_approved = true
+    } else if (roleType === 'pejabat') {
+      if (request.pejabat_id !== employee.id && !isManager) {
+        return { error: "Anda bukan Pejabat Berwenang yang ditunjuk untuk permohonan ini." }
+      }
+      updates.is_pejabat_approved = true
+    } else {
+      return { error: "Tipe tanda tangan tidak valid." }
+    }
 
-  // Determine if the leave is now fully approved (both are signed or null)
-  if (roleType !== 'all') {
     const finalIsAtasanApproved = roleType === 'atasan' ? true : (request.is_atasan_approved || !request.atasan_id)
     const finalIsPejabatApproved = roleType === 'pejabat' ? true : (request.is_pejabat_approved || !request.pejabat_id)
 
     if (finalIsAtasanApproved && finalIsPejabatApproved) {
-      updates.status = 'acc'
+      // Transitioning to approved: invoke the Supabase RPC
+      // First update signature fields
+      const { error: signErr } = await supabase.from('cuti').update(updates).eq('id', requestId)
+      if (signErr) return { error: signErr.message }
+
+      const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
+      if (rpcErr) return { error: rpcErr.message }
+    } else {
+      // Just update intermediate signature fields
+      const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
+      if (error) return { error: error.message }
     }
   }
-
-  const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
-  if (error) return { error: error.message }
 
   revalidatePath('/admin/requests')
   revalidatePath('/dashboard')
@@ -190,75 +279,241 @@ export async function getLeaveQuotaOverviewAction(employeeId, excludeLeaveId = n
 
   const startYear = employee?.start_date ? new Date(employee.start_date).getFullYear() : currentYear
 
-  // 2. Single clean query to fetch all approved 'Tahunan' leaves
-  const { data: approvedLeaves } = await supabase
-    .from('cuti')
-    .select('id, dates')
-    .eq('employee_id', employeeId)
-    .eq('category', 'Tahunan')
-    .eq('status', 'acc')
+  let remainingN, remainingN1, remainingN2;
 
-  // Group and sum used days by year for the last 3 years
-  const usedByYear = { [currentYear]: 0, [currentYear - 1]: 0, [currentYear - 2]: 0 }
+  // 2. Fetch snapshot balances from the chain
+  if (excludeLeaveId) {
+    // If excluding a request, fetch parent record's balances
+    const { data: currentRequest } = await supabase
+      .from('cuti')
+      .select('parent_cuti_id')
+      .eq('id', excludeLeaveId)
+      .single()
 
-  if (approvedLeaves) {
-    for (const leave of approvedLeaves) {
-      if (leave.id === excludeLeaveId) continue
-      if (leave.dates) {
-        for (const dateStr of leave.dates) {
-          const year = new Date(dateStr).getFullYear()
-          if (year in usedByYear) {
-            usedByYear[year]++
-          } else {
-            usedByYear[year] = (usedByYear[year] || 0) + 1
-          }
-        }
+    if (currentRequest && currentRequest.parent_cuti_id) {
+      const { data: parentRequest } = await supabase
+        .from('cuti')
+        .select('n_balance, n1_balance, n2_balance')
+        .eq('id', currentRequest.parent_cuti_id)
+        .single()
+
+      if (parentRequest) {
+        remainingN = parentRequest.n_balance;
+        remainingN1 = parentRequest.n1_balance;
+        remainingN2 = parentRequest.n2_balance;
       }
     }
   }
 
-  const used_n = usedByYear[currentYear] || 0
-  const used_n1 = usedByYear[currentYear - 1] || 0
-  const used_n2 = usedByYear[currentYear - 2] || 0
+  // If balances are not yet computed (no excludeId or parent not found)
+  if (remainingN === undefined) {
+    const { data: latestRequest } = await supabase
+      .from('cuti')
+      .select('n_balance, n1_balance, n2_balance')
+      .eq('employee_id', employeeId)
+      .eq('status', 'acc')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-  // Calculate carryovers on-the-fly based on remaining quota of past years (max 6 each)
-  const carryover_n1 = (currentYear - 1 >= startYear) ? Math.max(0, Math.min(12 - used_n1, 6)) : 0
-  const carryover_n2 = (currentYear - 2 >= startYear) ? Math.max(0, Math.min(12 - used_n2, 6)) : 0
-  const total_kuota = 12 + carryover_n1 + carryover_n2
-  const sisa_kuota = total_kuota - used_n
+    if (latestRequest) {
+      remainingN = latestRequest.n_balance;
+      remainingN1 = latestRequest.n1_balance;
+      remainingN2 = latestRequest.n2_balance;
+    } else {
+      // Default initial calculation if no approved request exists yet
+      const carryover_n1 = (currentYear - 1 >= startYear) ? 6 : 0
+      const carryover_n2 = (currentYear - 2 >= startYear) ? 6 : 0
+      remainingN = 12;
+      remainingN1 = carryover_n1;
+      remainingN2 = carryover_n2;
+    }
+  }
+
+  const carryover_n1_total = (currentYear - 1 >= startYear) ? 6 : 0
+  const carryover_n2_total = (currentYear - 2 >= startYear) ? 6 : 0
 
   const buckets = [
     {
       year: currentYear - 2,
-      total: (currentYear - 2 >= startYear) ? 6 : 0,
-      used: (currentYear - 2 >= startYear) ? 6 - carryover_n2 : 0,
-      remaining: carryover_n2,
+      total: carryover_n2_total,
+      used: carryover_n2_total - remainingN2,
+      remaining: remainingN2,
       expires_at: null
     },
     {
       year: currentYear - 1,
-      total: (currentYear - 1 >= startYear) ? 6 : 0,
-      used: (currentYear - 1 >= startYear) ? 6 - carryover_n1 : 0,
-      remaining: carryover_n1,
+      total: carryover_n1_total,
+      used: carryover_n1_total - remainingN1,
+      remaining: remainingN1,
       expires_at: null
     },
     {
       year: currentYear,
       total: 12,
-      used: used_n,
-      remaining: 12 - used_n,
+      used: 12 - remainingN,
+      remaining: remainingN,
       expires_at: null
     }
   ]
 
   return {
     totalAllowed: 12,
-    totalRemaining: 12 - used_n,
-    used: used_n,
-    carryoverAllowed: carryover_n1 + carryover_n2,
-    progressPercent: Math.min(100, Math.max(0, Math.round(((12 - used_n) / 12) * 100))),
+    totalRemaining: remainingN,
+    used: 12 - remainingN,
+    carryoverAllowed: remainingN1 + remainingN2,
+    progressPercent: Math.min(100, Math.max(0, Math.round((remainingN / 12) * 100))),
     buckets: buckets.sort((a, b) => a.year - b.year)
   }
+}
+
+export async function runOneTimeMigrationAction() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authorized" }
+
+  const { data: employee } = await supabase.from('employees').select('role').eq('auth_id', user.id).single()
+  if (!employee || (employee.role !== 'admin' && employee.role !== 'manager')) return { error: "Only admins can run migrations" }
+
+  // Fetch all employees
+  const { data: employees } = await supabase.from('employees').select('id, start_date')
+  if (!employees) return { error: "No employees found" }
+
+  let migratedCount = 0
+
+  for (const emp of employees) {
+    // Fetch all approved leaves for this employee, sorted deterministically
+    const { data: leaves } = await supabase
+      .from('cuti')
+      .select('*')
+      .eq('employee_id', emp.id)
+      .eq('status', 'acc')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+
+    if (!leaves || leaves.length === 0) continue
+
+    let parentId = null
+    let lastN = 12
+    let lastN1 = 0
+    let lastN2 = 0
+    let isFirst = true
+
+    for (const leave of leaves) {
+      const dates = leave.dates || []
+      if (dates.length === 0) continue
+
+      const currentYear = new Date(dates[0]).getFullYear()
+      const startYear = emp.start_date ? new Date(emp.start_date).getFullYear() : currentYear
+
+      // Calculate initial balances for the first node in the chain
+      if (isFirst) {
+        lastN = 12
+        lastN1 = (currentYear - 1 >= startYear) ? 6 : 0
+        lastN2 = (currentYear - 2 >= startYear) ? 6 : 0
+        isFirst = false
+      }
+
+      let n_reduced = 0
+      let n1_reduced = 0
+      let n2_reduced = 0
+
+      if (leave.category === 'Tahunan') {
+        let remaining = dates.length
+        
+        // FIFO deduction: N-2 -> N-1 -> N
+        n2_reduced = Math.min(remaining, lastN2)
+        remaining -= n2_reduced
+
+        n1_reduced = Math.min(remaining, lastN1)
+        remaining -= n1_reduced
+
+        n_reduced = Math.min(remaining, lastN)
+        remaining -= n_reduced
+      }
+
+      // Calculate new balances
+      const n_balance = lastN - n_reduced
+      const n1_balance = lastN1 - n1_reduced
+      const n2_balance = lastN2 - n2_reduced
+
+      // Update the record
+      await supabase
+        .from('cuti')
+        .update({
+          parent_cuti_id: parentId,
+          n_reduced,
+          n1_reduced,
+          n2_reduced,
+          n_balance,
+          n1_balance,
+          n2_balance
+        })
+        .eq('id', leave.id)
+
+      // Move downstream
+      parentId = leave.id
+      lastN = n_balance
+      lastN1 = n1_balance
+      lastN2 = n2_balance
+      migratedCount++
+    }
+  }
+
+  return { success: true, migratedCount }
+}
+
+export async function verifyChainIntegrityAction(employeeId) {
+  const supabase = await createClient()
+  // Fetch all approved leaves for this employee
+  const { data: leaves } = await supabase
+    .from('cuti')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .eq('status', 'acc')
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+
+  if (!leaves || leaves.length === 0) return { valid: true, message: "No approved requests." }
+
+  let parentId = null
+  let expectedN = 12
+  let expectedN1 = 0
+  let expectedN2 = 0
+  let isFirst = true
+
+  for (let i = 0; i < leaves.length; i++) {
+    const leave = leaves[i]
+    if (isFirst) {
+      expectedN = 12
+      const firstYear = new Date(leave.dates[0]).getFullYear()
+      const { data: emp } = await supabase.from('employees').select('start_date').eq('id', employeeId).single()
+      const startYear = emp?.start_date ? new Date(emp.start_date).getFullYear() : firstYear
+      expectedN1 = (firstYear - 1 >= startYear) ? 6 : 0
+      expectedN2 = (firstYear - 2 >= startYear) ? 6 : 0
+      isFirst = false
+    }
+
+    if (leave.parent_cuti_id !== parentId) {
+      return { valid: false, message: `Chain broken at request ${leave.id}. Expected parent ${parentId}, got ${leave.parent_cuti_id}.` }
+    }
+
+    const calcN = expectedN - (leave.n_reduced || 0)
+    const calcN1 = expectedN1 - (leave.n1_reduced || 0)
+    const calcN2 = expectedN2 - (leave.n2_reduced || 0)
+
+    if (leave.n_balance !== calcN || leave.n1_balance !== calcN1 || leave.n2_balance !== calcN2) {
+      return { valid: false, message: `Balance mismatch at request ${leave.id}. Snapshot balances (N:${leave.n_balance}, N1:${leave.n1_balance}, N2:${leave.n2_balance}) do not match calculated balances (N:${calcN}, N1:${calcN1}, N2:${calcN2}).` }
+    }
+
+    parentId = leave.id
+    expectedN = calcN
+    expectedN1 = calcN1
+    expectedN2 = calcN2
+  }
+
+  return { valid: true, message: "Chain is continuous and snapshot balances are valid." }
 }
 
 export async function deleteLeaveAction(requestId) {

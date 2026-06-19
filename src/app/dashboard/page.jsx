@@ -144,6 +144,7 @@ export default async function DashboardPage() {
     .limit(5)
 
   const hasPending = leaveHistory?.some(l => l.status === 'pending');
+  const pendingLeave = leaveHistory?.find(l => l.status === 'pending' && l.category === 'Tahunan');
 
   const hasMissingProfileInfo = !employee.position ||
     !employee.unit ||
@@ -201,6 +202,11 @@ export default async function DashboardPage() {
                       / {totalAllowed}
                     </span>
                   </div>
+                  {pendingLeave && (
+                    <p className="text-[10px] text-amber-600 font-semibold mt-2 leading-relaxed animate-pulse">
+                      ⚠️ Mencerminkan {pendingLeave.dates.length} hari dalam peninjauan (Sisa Estimasi: {remainingQuota - (pendingLeave.n_reduced || 0)} hari)
+                    </p>
+                  )}
                 </div>
                 <div className="p-3 bg-primary/10 rounded-xl text-primary">
                   <CalendarDays className="w-6 h-6" />
@@ -216,29 +222,40 @@ export default async function DashboardPage() {
 
               <div className="mt-6 space-y-3">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Rincian Kuota</p>
-                {buckets.slice().reverse().map((bucket) => (
-                  <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-slate-700">
-                        Tahun {bucket.year}
-                        {bucket.year === currentYear ? (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
-                        ) : bucket.year === currentYear - 1 ? (
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Tahun Lalu</span>
-                        ) : bucket.year === currentYear - 2 ? (
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
-                        ) : null}
-                      </span>
-                      {bucket.expires_at && (
-                        <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
-                      )}
+                {buckets.slice().reverse().map((bucket) => {
+                  let estRemaining = bucket.remaining;
+                  if (pendingLeave) {
+                    if (bucket.year === currentYear) estRemaining -= (pendingLeave.n_reduced || 0);
+                    if (bucket.year === currentYear - 1) estRemaining -= (pendingLeave.n1_reduced || 0);
+                    if (bucket.year === currentYear - 2) estRemaining -= (pendingLeave.n2_reduced || 0);
+                  }
+                  return (
+                    <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-slate-700">
+                          Tahun {bucket.year}
+                          {bucket.year === currentYear ? (
+                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Tahun Ini</span>
+                          ) : bucket.year === currentYear - 1 ? (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">Tahun Lalu</span>
+                          ) : bucket.year === currentYear - 2 ? (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
+                          ) : null}
+                        </span>
+                        {pendingLeave && (
+                          <span className="text-[9px] text-amber-600 font-semibold mt-0.5">Sisa Estimasi: {estRemaining} hari</span>
+                        )}
+                        {bucket.expires_at && (
+                          <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-slate-900">{bucket.remaining}</span>
+                        <span className="text-slate-400"> / {bucket.total} d</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-bold text-slate-900">{bucket.remaining}</span>
-                      <span className="text-slate-400"> / {bucket.total} d</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <p className="text-[10px] text-muted-foreground mt-4 italic">
@@ -518,9 +535,15 @@ export default async function DashboardPage() {
                           isAtasanApproved: leave.is_atasan_approved,
                           isPejabatApproved: leave.is_pejabat_approved,
                           quotas: {
-                            sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                            sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                            sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
+                            sisaN: leave.status === 'acc'
+                              ? (leave.n_balance !== null ? leave.n_balance : 0) + (leave.n_reduced || 0)
+                              : (buckets.find(b => b.year === currentYear)?.remaining || 0),
+                            sisaN1: leave.status === 'acc'
+                              ? (leave.n1_balance !== null ? leave.n1_balance : 0) + (leave.n1_reduced || 0)
+                              : (buckets.find(b => b.year === currentYear - 1)?.remaining || 0),
+                            sisaN2: leave.status === 'acc'
+                              ? (leave.n2_balance !== null ? leave.n2_balance : 0) + (leave.n2_reduced || 0)
+                              : (buckets.find(b => b.year === currentYear - 2)?.remaining || 0)
                           }
                         }}
                         size="sm"

@@ -330,9 +330,15 @@ export default async function UserProfilePage({ params }) {
                         isAtasanApproved: leave.is_atasan_approved,
                         isPejabatApproved: leave.is_pejabat_approved,
                         quotas: {
-                           sisaN: (buckets.find(b => b.year === currentYear)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                           sisaN1: (buckets.find(b => b.year === currentYear - 1)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 1 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0),
-                           sisaN2: (buckets.find(b => b.year === currentYear - 2)?.remaining || 0) + (leave.dates && leave.dates.length > 0 && new Date(leave.dates[0]).getFullYear() === currentYear - 2 && leave.status === 'acc' && leave.category === 'Tahunan' ? leave.dates.length : 0)
+                          sisaN: leave.status === 'acc'
+                            ? (leave.n_balance !== null ? leave.n_balance : 0) + (leave.n_reduced || 0)
+                            : (buckets.find(b => b.year === currentYear)?.remaining || 0),
+                          sisaN1: leave.status === 'acc'
+                            ? (leave.n1_balance !== null ? leave.n1_balance : 0) + (leave.n1_reduced || 0)
+                            : (buckets.find(b => b.year === currentYear - 1)?.remaining || 0),
+                          sisaN2: leave.status === 'acc'
+                            ? (leave.n2_balance !== null ? leave.n2_balance : 0) + (leave.n2_reduced || 0)
+                            : (buckets.find(b => b.year === currentYear - 2)?.remaining || 0)
                         }
                       }}
                       size="sm" 
