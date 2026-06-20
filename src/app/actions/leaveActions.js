@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function submitLeaveAction(payload) {
-  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId, status: clientStatus } = payload;
+  const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId, status: clientStatus, requestDate } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
@@ -81,33 +81,49 @@ export async function submitLeaveAction(payload) {
       availableN2 = carryover_n2;
     }
 
-    // Run server-side FIFO allocation based on checkbox indicators sent in payload
-    const { includeN = true, includeN1 = true, includeN2 = true } = payload;
-    let remaining = daysRequested;
+    // Allow client to supply exact manual allocations, otherwise fallback to FIFO
+    if (payload.n_reduced !== undefined && payload.n1_reduced !== undefined && payload.n2_reduced !== undefined) {
+      const clientN = parseInt(payload.n_reduced, 10);
+      const clientN1 = parseInt(payload.n1_reduced, 10);
+      const clientN2 = parseInt(payload.n2_reduced, 10);
 
-    if (includeN2) {
-      n2_reduced = Math.min(remaining, availableN2);
-      remaining -= n2_reduced;
-    }
-    if (includeN1) {
-      n1_reduced = Math.min(remaining, availableN1);
-      remaining -= n1_reduced;
-    }
-    if (includeN) {
-      n_reduced = Math.min(remaining, availableN);
-      remaining -= n_reduced;
-    }
+      if (isNaN(clientN) || clientN < 0 || clientN > availableN) {
+        return { error: "Alokasi kuota tahun ini (N) tidak valid atau melebihi sisa kuota." }
+      }
+      if (isNaN(clientN1) || clientN1 < 0 || clientN1 > availableN1) {
+        return { error: "Alokasi kuota tahun lalu (N-1) tidak valid atau melebihi sisa kuota." }
+      }
+      if (isNaN(clientN2) || clientN2 < 0 || clientN2 > availableN2) {
+        return { error: "Alokasi kuota 2 tahun lalu (N-2) tidak valid atau melebihi sisa kuota." }
+      }
+      if (clientN + clientN1 + clientN2 !== daysRequested) {
+        return { error: "Jumlah alokasi potongan kuota tidak sesuai dengan total hari cuti yang diajukan." }
+      }
 
-    if (remaining > 0) {
-      return { error: "Kuota cuti aktif yang dipilih tidak mencukupi untuk jumlah hari yang diajukan." }
-    }
+      n_reduced = clientN;
+      n1_reduced = clientN1;
+      n2_reduced = clientN2;
+    } else {
+      // Fallback to automatic FIFO allocation based on checkbox indicators
+      const { includeN = true, includeN1 = true, includeN2 = true } = payload;
+      let remaining = daysRequested;
 
-    // Server-side validation: assert client payload math matches server calculations exactly
-    if (
-      payload.n_reduced !== undefined &&
-      (payload.n_reduced !== n_reduced || payload.n1_reduced !== n1_reduced || payload.n2_reduced !== n2_reduced)
-    ) {
-      return { error: "Deteksi manipulasi data quota. Perhitungan server dan client tidak sinkron." }
+      if (includeN2) {
+        n2_reduced = Math.min(remaining, availableN2);
+        remaining -= n2_reduced;
+      }
+      if (includeN1) {
+        n1_reduced = Math.min(remaining, availableN1);
+        remaining -= n1_reduced;
+      }
+      if (includeN) {
+        n_reduced = Math.min(remaining, availableN);
+        remaining -= n_reduced;
+      }
+
+      if (remaining > 0) {
+        return { error: "Kuota cuti aktif yang dipilih tidak mencukupi untuk jumlah hari yang diajukan." }
+      }
     }
   }
 
@@ -125,9 +141,10 @@ export async function submitLeaveAction(payload) {
       atasan_id: atasanId || null,
       pejabat_id: pejabatId || null,
       attachment_url: attachmentUrl || null,
-      status: isAcc ? 'acc' : status,
-      is_atasan_approved: isAcc,
-      is_pejabat_approved: isAcc,
+      status: 'pending', // Always insert as pending so the RPC can process it
+      is_atasan_approved: false,
+      is_pejabat_approved: false,
+      request_date: requestDate || null,
       n_reduced,
       n1_reduced,
       n2_reduced

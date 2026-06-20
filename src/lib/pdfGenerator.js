@@ -43,7 +43,7 @@ export const COORDS = {
 /**
  * Client-side function to fetch the template, modify it with data, and return a Blob.
  */
-export async function generateLeavePDF({ employeeId, name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate, status, isAtasanApproved, isPejabatApproved }) {
+export async function generateLeavePDF({ employeeId, name, nip, position, unit, phone, address, category, dates, note, quotas, customCoords, atasan, pejabat, recipientType, employeeStartDate, status, isAtasanApproved, isPejabatApproved, requestDate }) {
   const currentCoords = customCoords || COORDS;
 
   // Fetch the template from public folder
@@ -112,7 +112,7 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
   if (address && currentCoords.address) firstPage.drawText(address || '', { x: currentCoords.address.x, y: currentCoords.address.y, ...drawOpts })
 
   if (employeeStartDate && currentCoords.serviceYears) {
-    const duration = intervalToDuration({ start: new Date(employeeStartDate), end: new Date() });
+    const duration = intervalToDuration({ start: new Date(employeeStartDate), end: requestDate ? new Date(requestDate) : new Date() });
     const text = `${duration.years || 0} Tahun ${duration.months || 0} Bulan ${duration.days || 0} Hari`;
     firstPage.drawText(text, { x: currentCoords.serviceYears.x, y: currentCoords.serviceYears.y, ...drawOpts });
   }
@@ -163,9 +163,9 @@ export async function generateLeavePDF({ employeeId, name, nip, position, unit, 
     })
   }
 
-  // Draw current date (Signature Date) in Indonesian format
+  // Draw signature date in Indonesian format
   if (currentCoords.signatureDate) {
-    const todayText = format(new Date(), 'd MMMM yyyy', { locale: id })
+    const todayText = format(requestDate ? new Date(requestDate) : new Date(), 'd MMMM yyyy', { locale: id })
     firstPage.drawText(todayText, {
       x: currentCoords.signatureDate.x,
       y: currentCoords.signatureDate.y,

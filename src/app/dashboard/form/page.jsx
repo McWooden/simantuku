@@ -20,6 +20,8 @@ import {
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 import {
   Dialog,
@@ -53,9 +55,9 @@ export default function LeaveFormPage() {
     pejabatId: false
   })
   const [quotas, setQuotas] = useState({ sisaN: 0, sisaN1: 0, sisaN2: 0 })
-  const [includeN, setIncludeN] = useState(true)
-  const [includeN1, setIncludeN1] = useState(true)
-  const [includeN2, setIncludeN2] = useState(true)
+  const [nReducedSelected, setNReducedSelected] = useState(0)
+  const [n1ReducedSelected, setN1ReducedSelected] = useState(0)
+  const [n2ReducedSelected, setN2ReducedSelected] = useState(0)
 
   const [customCoords, setCustomCoords] = useState(COORDS)
   const [superiors, setSuperiors] = useState([])
@@ -70,35 +72,175 @@ export default function LeaveFormPage() {
   const [note, setNote] = useState('')
   const [recipientType, setRecipientType] = useState('Camat')
 
-  // Quota allocation logic
-  const datesCount = dates.length
-  let remainingDays = datesCount
-  let calcN2 = 0
-  let calcN1 = 0
-  let calcN = 0
+  const getTodayString = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  const [requestDate, setRequestDate] = useState(getTodayString())
+  const [editingPart, setEditingPart] = useState(null) // null | 'day' | 'month' | 'year'
+  const [tempDay, setTempDay] = useState('')
+  const [tempYear, setTempYear] = useState('')
 
-  if (category === 'Tahunan') {
-    if (includeN2) {
-      calcN2 = Math.min(remainingDays, quotas.sisaN2)
-      remainingDays -= calcN2
+  const INDONESIAN_MONTHS = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+
+  const parseDateString = (dateStr) => {
+    if (!dateStr) return { day: 1, month: 0, year: new Date().getFullYear() }
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      return {
+        year: parseInt(parts[0], 10),
+        month: parseInt(parts[1], 10) - 1,
+        day: parseInt(parts[2], 10)
+      }
     }
-    if (includeN1) {
-      calcN1 = Math.min(remainingDays, quotas.sisaN1)
-      remainingDays -= calcN1
-    }
-    if (includeN) {
-      calcN = Math.min(remainingDays, quotas.sisaN)
-      remainingDays -= calcN
-    }
+    const d = new Date(dateStr)
+    return { day: d.getDate(), month: d.getMonth(), year: d.getFullYear() }
   }
 
-  const isQuotaInsufficient = category === 'Tahunan' && remainingDays > 0
-  const totalCheckedQuota = (includeN2 ? quotas.sisaN2 : 0) + (includeN1 ? quotas.sisaN1 : 0) + (includeN ? quotas.sisaN : 0)
+  const formatDateString = (y, m, d) => {
+    const yearStr = String(y).padStart(4, '0')
+    const monthStr = String(m + 1).padStart(2, '0')
+    const dayStr = String(d).padStart(2, '0')
+    return `${yearStr}-${monthStr}-${dayStr}`
+  }
 
-  // Smart locking rule
-  const disableN2 = includeN2 && (totalCheckedQuota - quotas.sisaN2) < datesCount
-  const disableN1 = includeN1 && (totalCheckedQuota - quotas.sisaN1) < datesCount
-  const disableN = includeN && (totalCheckedQuota - quotas.sisaN) < datesCount
+  const getDaysInMonth = (y, m) => {
+    return new Date(y, m + 1, 0).getDate()
+  }
+
+  const { year: parsedYear, month: parsedMonth, day: parsedDay } = parseDateString(requestDate)
+
+  // Quota allocation logic
+  const datesCount = dates.length
+  const calcN = category === 'Tahunan' ? nReducedSelected : 0
+  const calcN1 = category === 'Tahunan' ? n1ReducedSelected : 0
+  const calcN2 = category === 'Tahunan' ? n2ReducedSelected : 0
+  const totalAllocated = calcN + calcN1 + calcN2
+  const totalAvailableQuota = quotas.sisaN + quotas.sisaN1 + quotas.sisaN2
+  const isQuotaInsufficient = category === 'Tahunan' && dates.length > 0 && totalAvailableQuota < dates.length
+
+  // Auto-allocate quotas using FIFO when dates or quotas change
+  useEffect(() => {
+    if (category === 'Tahunan') {
+      let remaining = dates.length
+      
+      const defaultN2 = Math.min(remaining, quotas.sisaN2)
+      remaining -= defaultN2
+      
+      const defaultN1 = Math.min(remaining, quotas.sisaN1)
+      remaining -= defaultN1
+      
+      const defaultN = Math.min(remaining, quotas.sisaN)
+      remaining -= defaultN
+
+      setNReducedSelected(defaultN)
+      setN1ReducedSelected(defaultN1)
+      setN2ReducedSelected(defaultN2)
+    } else {
+      setNReducedSelected(0)
+      setN1ReducedSelected(0)
+      setN2ReducedSelected(0)
+    }
+  }, [dates.length, quotas, category])
+
+  // Reset to default helper
+  const handleResetAllocation = () => {
+    let remaining = dates.length
+    const defaultN2 = Math.min(remaining, quotas.sisaN2)
+    remaining -= defaultN2
+    const defaultN1 = Math.min(remaining, quotas.sisaN1)
+    remaining -= defaultN1
+    const defaultN = Math.min(remaining, quotas.sisaN)
+    remaining -= defaultN
+
+    setNReducedSelected(defaultN)
+    setN1ReducedSelected(defaultN1)
+    setN2ReducedSelected(defaultN2)
+  }
+
+  // Helper to dynamically adjust allocations when sliders change
+  const changeAllocation = (part, val) => {
+    let maxVal = 0
+    if (part === 'N2') maxVal = quotas.sisaN2
+    if (part === 'N1') maxVal = quotas.sisaN1
+    if (part === 'N') maxVal = quotas.sisaN
+    val = Math.max(0, Math.min(maxVal, val))
+
+    let current = 0
+    if (part === 'N2') current = n2ReducedSelected
+    if (part === 'N1') current = n1ReducedSelected
+    if (part === 'N') current = nReducedSelected
+
+    const total = n2ReducedSelected + n1ReducedSelected + nReducedSelected
+
+    if (total === dates.length) {
+      if (val < current) {
+        // Block manual reduction once target is met
+        return
+      }
+      if (val > current) {
+        let delta = val - current
+        let otherParts = []
+        if (part === 'N2') {
+          otherParts = [
+            { name: 'N', val: nReducedSelected, set: setNReducedSelected },
+            { name: 'N1', val: n1ReducedSelected, set: setN1ReducedSelected }
+          ]
+        }
+        if (part === 'N1') {
+          otherParts = [
+            { name: 'N', val: nReducedSelected, set: setNReducedSelected },
+            { name: 'N2', val: n2ReducedSelected, set: setN2ReducedSelected }
+          ]
+        }
+        if (part === 'N') {
+          otherParts = [
+            { name: 'N1', val: n1ReducedSelected, set: setN1ReducedSelected },
+            { name: 'N2', val: n2ReducedSelected, set: setN2ReducedSelected }
+          ]
+        }
+
+        // Try to deduct delta from other parts (newest/latest pool first)
+        let p1 = otherParts[0]
+        let p2 = otherParts[1]
+
+        let deduct1 = Math.min(delta, p1.val)
+        delta -= deduct1
+        let deduct2 = Math.min(delta, p2.val)
+        delta -= deduct2
+
+        if (delta === 0) {
+          if (part === 'N2') setN2ReducedSelected(val)
+          if (part === 'N1') setN1ReducedSelected(val)
+          if (part === 'N') setNReducedSelected(val)
+
+          p1.set(p1.val - deduct1)
+          p2.set(p2.val - deduct2)
+        } else {
+          // Cap the increase to available room
+          const allowedIncrease = p1.val + p2.val
+          const cappedVal = current + allowedIncrease
+          if (part === 'N2') setN2ReducedSelected(cappedVal)
+          if (part === 'N1') setN1ReducedSelected(cappedVal)
+          if (part === 'N') setNReducedSelected(cappedVal)
+
+          p1.set(0)
+          p2.set(0)
+        }
+      }
+    } else {
+      // Under-allocated or over-allocated (e.g. date count changed), allow direct adjustment
+      if (part === 'N2') setN2ReducedSelected(val)
+      if (part === 'N1') setN1ReducedSelected(val)
+      if (part === 'N') setNReducedSelected(val)
+    }
+  }
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
@@ -144,11 +286,9 @@ export default function LeaveFormPage() {
     return () => clearTimeout(handler)
   }, [dates])
 
-  // Reset checkboxes when category or selected employee changes
+  // Reset allocations when category or selected employee changes
   useEffect(() => {
-    setIncludeN(true)
-    setIncludeN1(true)
-    setIncludeN2(true)
+    handleResetAllocation()
   }, [category, selectedOnBehalfId])
 
   // Check for pending requests on mount
@@ -277,7 +417,8 @@ export default function LeaveFormPage() {
           atasan: superiors.find(s => s.id === atasanId),
           pejabat: superiors.find(s => s.id === pejabatId),
           recipientType,
-          employeeStartDate
+          employeeStartDate,
+          requestDate
         })
         if (active) {
           const url = URL.createObjectURL(blob)
@@ -292,7 +433,7 @@ export default function LeaveFormPage() {
     }
     updatePreview()
     return () => { active = false }
-  }, [employeeId, employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate, calcN, calcN1, calcN2])
+  }, [employeeId, employeeName, employeeNip, employeeUnit, employeePosition, employeePhone, address, category, debouncedDates, note, quotas, customCoords, atasanId, pejabatId, superiors, recipientType, employeeStartDate, calcN, calcN1, calcN2, requestDate])
 
   const handleCategoryChange = (val) => {
     setCategory(val)
@@ -344,6 +485,23 @@ export default function LeaveFormPage() {
         return
       }
 
+      let finalN = calcN;
+      let finalN1 = calcN1;
+      let finalN2 = calcN2;
+
+      if (category === 'Tahunan' && totalAllocated !== dates.length) {
+        let remaining = dates.length;
+        
+        finalN2 = Math.min(remaining, quotas.sisaN2);
+        remaining -= finalN2;
+        
+        finalN1 = Math.min(remaining, quotas.sisaN1);
+        remaining -= finalN1;
+        
+        finalN = Math.min(remaining, quotas.sisaN);
+        remaining -= finalN;
+      }
+
       // Sort dates and convert to YYYY-MM-DD
       const formattedDates = [...dates]
         .sort((a, b) => a.getTime() - b.getTime())
@@ -385,12 +543,10 @@ export default function LeaveFormPage() {
         attachmentUrl,
         onBehalfEmployeeId: isAdmin ? selectedOnBehalfId : null,
         status: isAdmin ? statusToSubmit : 'pending',
-        includeN,
-        includeN1,
-        includeN2,
-        n_reduced: calcN,
-        n1_reduced: calcN1,
-        n2_reduced: calcN2
+        n_reduced: finalN,
+        n1_reduced: finalN1,
+        n2_reduced: finalN2,
+        requestDate
       }
 
       const res = await submitLeaveAction(payload);
@@ -418,7 +574,7 @@ export default function LeaveFormPage() {
           <div className="mb-6 flex flex-row items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Ajukan Cuti</h1>
-              <p className="text-slate-500 mt-1 flex items-center gap-2">
+              <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm">
                 Selesaikan langkah-langkah untuk mengirim formulir Anda
               </p>
             </div>
@@ -462,94 +618,220 @@ export default function LeaveFormPage() {
                     </div>
                   </div>
                 )}
-                {/* Section 1: Informasi Dasar */}
-                <div className="space-y-6">
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 border-b border-slate-200 pb-3">
-                    <span className="w-1.5 h-6 bg-primary rounded-full"></span> Informasi Dasar
-                  </h2>
+                {/* Header-like Right-aligned controls (Date and Recipient) */}
+                <div className="flex flex-col items-end gap-2 text-right w-full mb-4">
+                  {/* Request Date */}
+                  <div className="h-9 flex items-center text-slate-800 text-base font-normal gap-1.5 select-none justify-end">
+                    <span>Magelang,</span>
 
-                  <div className="space-y-6">
-                    <div className="space-y-3 max-w-md">
-                      <Label htmlFor="category" className="text-slate-600 font-semibold">Kategori Cuti</Label>
-                      <Select value={category} onValueChange={handleCategoryChange}>
-                        <SelectTrigger id="category" className={`h-11 ${errors.category ? 'border-red-500 ring-red-500' : ''}`}>
-                          <SelectValue placeholder="Pilih kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tahunan">Cuti Tahunan</SelectItem>
-                          <SelectItem value="Besar">Cuti Besar</SelectItem>
-                          <SelectItem value="Sakit">Cuti Sakit</SelectItem>
-                          <SelectItem value="Melahirkan">Cuti Melahirkan</SelectItem>
-                          <SelectItem value="Penting">Cuti Karena Alasan Penting</SelectItem>
-                          <SelectItem value="LuarTanggungan">Cuti di Luar Tanggungan Negara</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    {/* Day */}
+                    {editingPart === 'day' ? (
+                      <input
+                        type="number"
+                        min={1}
+                        max={getDaysInMonth(parsedYear, parsedMonth)}
+                        value={tempDay}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10)
+                          setTempDay(isNaN(val) ? '' : val)
+                        }}
+                        onBlur={() => {
+                          const cleanDay = Math.max(1, Math.min(getDaysInMonth(parsedYear, parsedMonth), tempDay || 1))
+                          const newDateStr = formatDateString(parsedYear, parsedMonth, cleanDay)
+                          setRequestDate(newDateStr)
+                          setEditingPart(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const cleanDay = Math.max(1, Math.min(getDaysInMonth(parsedYear, parsedMonth), tempDay || 1))
+                            const newDateStr = formatDateString(parsedYear, parsedMonth, cleanDay)
+                            setRequestDate(newDateStr)
+                            setEditingPart(null)
+                          } else if (e.key === 'Escape') {
+                            setEditingPart(null)
+                          }
+                        }}
+                        autoFocus
+                        className="w-12 h-7 px-1 text-center border border-slate-300 rounded font-normal focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-base"
+                      />
+                    ) : (
+                      <span
+                        onClick={() => {
+                          setTempDay(parsedDay)
+                          setEditingPart('day')
+                        }}
+                        className="cursor-pointer font-normal text-slate-800 hover:text-primary transition-colors"
+                        style={{
+                          backgroundImage: 'linear-gradient(to right, var(--color-primary, #6366f1) 60%, transparent 60%)',
+                          backgroundPosition: '0 100%',
+                          backgroundSize: '5px 1.2px',
+                          backgroundRepeat: 'repeat-x',
+                          paddingBottom: '1px',
+                        }}
+                        title="Klik untuk mengubah hari"
+                      >
+                        {parsedDay}
+                      </span>
+                    )}
+
+                    {/* Month */}
+                    <div className="relative inline-block text-left">
+                      <span
+                        onClick={() => setEditingPart(editingPart === 'month' ? null : 'month')}
+                        className="cursor-pointer font-normal text-slate-800 hover:text-primary transition-colors"
+                        style={{
+                          backgroundImage: 'linear-gradient(to right, var(--color-primary, #6366f1) 60%, transparent 60%)',
+                          backgroundPosition: '0 100%',
+                          backgroundSize: '5px 1.2px',
+                          backgroundRepeat: 'repeat-x',
+                          paddingBottom: '1px',
+                        }}
+                        title="Klik untuk mengubah bulan"
+                      >
+                        {INDONESIAN_MONTHS[parsedMonth]}
+                      </span>
+                      {editingPart === 'month' && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setEditingPart(null)}
+                          />
+                          <div className="absolute right-0 mt-1 max-h-60 w-40 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in slide-in-from-top-1 duration-100 border border-slate-200">
+                            {INDONESIAN_MONTHS.map((m, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 hover:text-slate-900 transition-colors ${parsedMonth === idx ? 'bg-indigo-50 text-primary font-medium' : 'text-slate-700'}`}
+                                onClick={() => {
+                                  const maxDays = getDaysInMonth(parsedYear, idx)
+                                  const cleanDay = Math.min(parsedDay, maxDays)
+                                  const newDateStr = formatDateString(parsedYear, idx, cleanDay)
+                                  setRequestDate(newDateStr)
+                                  setEditingPart(null)
+                                }}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(category) && (
-                      <div className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in fade-in zoom-in duration-300">
-                        <Label htmlFor="attachment" className="font-semibold text-amber-900 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-amber-600" />
-                          Dokumen Pendukung (Opsional)
-                        </Label>
-                        <Input
-                          id="attachment"
-                          type="file"
-                          accept=".pdf"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              if (file.type !== 'application/pdf') {
-                                setError('File lampiran harus berformat PDF.');
-                                e.target.value = '';
-                                setAttachmentFile(null);
-                                setAttachmentPreview(null);
-                                return;
-                              }
-                              if (file.size > 5 * 1024 * 1024) {
-                                setError('Ukuran file lampiran maksimal 5MB.');
-                                e.target.value = '';
-                                setAttachmentFile(null);
-                                setAttachmentPreview(null);
-                                return;
-                              }
-                              setError('');
-                              setAttachmentFile(file);
-                              setAttachmentPreview(URL.createObjectURL(file));
-                            } else {
-                              setAttachmentFile(null);
-                              setAttachmentPreview(null);
-                            }
-                          }}
-                          className="cursor-pointer file:cursor-pointer bg-white"
-                        />
-                        <p className="text-xs text-amber-700/80 font-medium">
-                          *Cuti Sakit, Besar, Melahirkan, Penting, atau Di Luar Tanggungan Negara biasanya memerlukan surat pendukung (Maks. 5MB, berformat PDF).
-                        </p>
-
-                        {attachmentPreview && (
-                          <div className="mt-4 border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
-                            <div className="bg-slate-50 px-3 py-2 border-b text-xs font-semibold text-slate-700 flex justify-between items-center">
-                              <span className="truncate pr-4">Pratinjau: {attachmentFile?.name}</span>
-                              <span className="text-slate-500 whitespace-nowrap">{(attachmentFile?.size / 1024 / 1024).toFixed(2)} MB</span>
-                            </div>
-                            <iframe
-                              src={attachmentPreview}
-                              className="w-full h-80 border-0"
-                              title="Pratinjau Lampiran"
-                            />
-                          </div>
-                        )}
-                      </div>
+                    {/* Year */}
+                    {editingPart === 'year' ? (
+                      <input
+                        type="number"
+                        min={1900}
+                        max={2100}
+                        value={tempYear}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10)
+                          setTempYear(isNaN(val) ? '' : val)
+                        }}
+                        onBlur={() => {
+                          const cleanYear = Math.max(1900, Math.min(2100, tempYear || new Date().getFullYear()))
+                          const maxDays = getDaysInMonth(cleanYear, parsedMonth)
+                          const cleanDay = Math.min(parsedDay, maxDays)
+                          const newDateStr = formatDateString(cleanYear, parsedMonth, cleanDay)
+                          setRequestDate(newDateStr)
+                          setEditingPart(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const cleanYear = Math.max(1900, Math.min(2100, tempYear || new Date().getFullYear()))
+                            const maxDays = getDaysInMonth(cleanYear, parsedMonth)
+                            const cleanDay = Math.min(parsedDay, maxDays)
+                            const newDateStr = formatDateString(cleanYear, parsedMonth, cleanDay)
+                            setRequestDate(newDateStr)
+                            setEditingPart(null)
+                          } else if (e.key === 'Escape') {
+                            setEditingPart(null)
+                          }
+                        }}
+                        autoFocus
+                        className="w-16 h-7 px-1 text-center border border-slate-300 rounded font-normal focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-base"
+                      />
+                    ) : (
+                      <span
+                        onClick={() => {
+                          setTempYear(parsedYear)
+                          setEditingPart('year')
+                        }}
+                        className="cursor-pointer font-normal text-slate-800 hover:text-primary transition-colors"
+                        style={{
+                          backgroundImage: 'linear-gradient(to right, var(--color-primary, #6366f1) 60%, transparent 60%)',
+                          backgroundPosition: '0 100%',
+                          backgroundSize: '5px 1.2px',
+                          backgroundRepeat: 'repeat-x',
+                          paddingBottom: '1px',
+                        }}
+                        title="Klik untuk mengubah tahun"
+                      >
+                        {parsedYear}
+                      </span>
                     )}
+                  </div>
+
+                  {/* Recipient */}
+                  <div className="flex flex-col items-end gap-1">
+                    <Label className="text-slate-500 font-semibold text-xs tracking-wider uppercase text-right">Tujuan Surat Kepada Yth.</Label>
+                    <div className="flex items-center gap-4 h-9 px-3 bg-slate-50 rounded-lg border border-slate-200/85 w-fit">
+                      <Label className="flex items-center gap-1.5 font-medium cursor-pointer text-xs">
+                        <input
+                          type="radio"
+                          name="recipientType"
+                          value="Lurah"
+                          checked={recipientType === 'Lurah'}
+                          onChange={() => setRecipientType('Lurah')}
+                          className="w-3.5 h-3.5 text-primary border-slate-300 focus:ring-primary accent-primary"
+                        />
+                        <span>Lurah</span>
+                      </Label>
+                      <Label className="flex items-center gap-1.5 font-medium cursor-pointer text-xs">
+                        <input
+                          type="radio"
+                          name="recipientType"
+                          value="Camat"
+                          checked={recipientType === 'Camat'}
+                          onChange={() => setRecipientType('Camat')}
+                          className="w-3.5 h-3.5 text-primary border-slate-300 focus:ring-primary accent-primary"
+                        />
+                        <span>Camat</span>
+                      </Label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Section 2: Jadwal */}
+                {/* Section 2: Jadwal Cuti (Kategori Terintegrasi) */}
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                      <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span> Jadwal Cuti
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                      <span className="w-1.5 h-6 bg-indigo-500 rounded-full shrink-0"></span>
+                      <span>Jadwal Cuti</span>
+                      <Select value={category} onValueChange={handleCategoryChange}>
+                        <SelectTrigger
+                          id="category"
+                          className="h-auto p-0 border-0 bg-transparent hover:bg-transparent shadow-none focus:ring-0 focus:ring-offset-0 text-left font-bold text-slate-800 text-xl cursor-pointer inline-flex items-center gap-1 w-fit focus:outline-none rounded-none"
+                          style={{
+                            backgroundImage: 'linear-gradient(to right, var(--color-primary, #6366f1) 60%, transparent 60%)',
+                            backgroundPosition: '0 100%',
+                            backgroundSize: '5px 1.5px',
+                            backgroundRepeat: 'repeat-x',
+                            paddingBottom: '2px',
+                          }}
+                        >
+                          <SelectValue placeholder="Pilih kategori" />
+                        </SelectTrigger>
+                        <SelectContent className="font-normal font-sans">
+                          <SelectItem value="Tahunan">Tahunan</SelectItem>
+                          <SelectItem value="Besar">Besar</SelectItem>
+                          <SelectItem value="Sakit">Sakit</SelectItem>
+                          <SelectItem value="Melahirkan">Melahirkan</SelectItem>
+                          <SelectItem value="Penting">Karena Alasan Penting</SelectItem>
+                          <SelectItem value="LuarTanggungan">di Luar Tanggungan Negara</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </h2>
                     {dates.length > 0 && (
                       <span className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all self-start sm:self-auto ${isDatesApplying ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-500 text-white shadow-sm'}`}>
@@ -559,130 +841,287 @@ export default function LeaveFormPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col items-start">
-                    <div className={`bg-white rounded-xl border ${errors.dates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'} shadow-sm p-3 inline-block transition-colors`}>
-                      <Calendar
-                        mode="multiple"
-                        selected={dates}
-                        onSelect={setDates}
-                        className="rounded-md"
-                        modifiers={{
-                          weekend: (date) => date.getDay() === 0 || date.getDay() === 6
+                  {['Besar', 'Melahirkan', 'Penting', 'LuarTanggungan', 'Sakit'].includes(category) && (
+                    <div className="max-w-md p-5 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in fade-in zoom-in duration-300">
+                      <Label htmlFor="attachment" className="font-semibold text-amber-900 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                        Dokumen Pendukung (Opsional)
+                      </Label>
+                      <Input
+                        id="attachment"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            if (file.type !== 'application/pdf') {
+                              setError('File lampiran harus berformat PDF.');
+                              e.target.value = '';
+                              setAttachmentFile(null);
+                              setAttachmentPreview(null);
+                              return;
+                            }
+                            if (file.size > 5 * 1024 * 1024) {
+                              setError('Ukuran file lampiran maksimal 5MB.');
+                              e.target.value = '';
+                              setAttachmentFile(null);
+                              setAttachmentPreview(null);
+                              return;
+                            }
+                            setError('');
+                            setAttachmentFile(file);
+                            setAttachmentPreview(URL.createObjectURL(file));
+                          } else {
+                            setAttachmentFile(null);
+                            setAttachmentPreview(null);
+                          }
                         }}
-                        modifiersClassNames={{
-                          weekend: "text-amber-600 bg-amber-50/60 font-semibold hover:bg-amber-100 hover:text-amber-700 data-[selected-single=true]:bg-amber-500 data-[selected-single=true]:text-white"
-                        }}
+                        className="cursor-pointer file:cursor-pointer bg-white"
                       />
+                      <p className="text-xs text-amber-700/80 font-medium">
+                        *Cuti Sakit, Besar, Melahirkan, Penting, atau Di Luar Tanggungan Negara biasanya memerlukan surat pendukung (Maks. 5MB, berformat PDF).
+                      </p>
+
+                      {attachmentPreview && (
+                        <div className="mt-4 border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
+                          <div className="bg-slate-50 px-3 py-2 border-b text-xs font-semibold text-slate-700 flex justify-between items-center">
+                            <span className="truncate pr-4">Pratinjau: {attachmentFile?.name}</span>
+                            <span className="text-slate-500 whitespace-nowrap">{(attachmentFile?.size / 1024 / 1024).toFixed(2)} MB</span>
+                          </div>
+                          <iframe
+                            src={attachmentPreview}
+                            className="w-full h-80 border-0"
+                            title="Pratinjau Lampiran"
+                          />
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className="mt-3 text-xs text-slate-500 font-medium space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100/80 animate-in fade-in duration-300">
-                      <span className="block text-slate-700 font-semibold mb-1">Saldo Kuota Cuti {employeeName}:</span>
-                      <div className="flex flex-col xs:flex-row gap-2 xs:gap-5">
-                        <span>Tahun Ini ({new Date().getFullYear()}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN} hari</strong></span>
-                        <span>Tahun Lalu ({new Date().getFullYear() - 1}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN1} hari</strong></span>
-                        <span>2 Tahun Lalu ({new Date().getFullYear() - 2}): <strong className="text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{quotas.sisaN2} hari</strong></span>
+                  )}
+
+                  <div className="flex flex-row flex-wrap gap-6 items-start w-full">
+                    {/* Calendar Column */}
+                    <div className="flex flex-col items-start shrink-0">
+                      <div className={`bg-white rounded-xl border ${errors.dates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'} shadow-sm p-3 inline-block transition-colors`}>
+                        <Calendar
+                          mode="multiple"
+                          selected={dates}
+                          onSelect={setDates}
+                          className="rounded-md"
+                          modifiers={{
+                            weekend: (date) => date.getDay() === 0 || date.getDay() === 6
+                          }}
+                          modifiersClassNames={{
+                            weekend: "text-amber-600 bg-amber-50/60 font-semibold hover:bg-amber-100 hover:text-amber-700 data-[selected-single=true]:bg-amber-500 data-[selected-single=true]:text-white"
+                          }}
+                        />
                       </div>
+                      
+                      {dates.length === 0 && (
+                        <p className="text-sm text-slate-500 mt-4 italic text-center w-full max-w-[270px]">
+                          Harap pilih setidaknya satu tanggal dari kalender.
+                        </p>
+                      )}
+                      
+                      {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300 max-w-[270px]">
+                          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
+                            <p className="opacity-90 leading-relaxed text-xs">
+                              Anda memilih hari Sabtu atau Minggu. Hari kerja biasanya Senin hingga Jumat.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {category === 'Tahunan' && dates.length > 0 && (
-                      <div className="mt-4 p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-3.5 animate-in fade-in zoom-in duration-300 w-full max-w-sm">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Alokasi Potongan Kuota</h3>
-                          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{dates.length} Hari Diajukan</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 leading-relaxed">
-                          Sistem akan memotong cuti berurutan (FIFO). Anda bisa membatalkan pilihan untuk mengunci kuota agar tidak terpakai.
-                        </p>
-
-                        <div className="space-y-2.5 pt-1">
-                          {/* Checkbox N-2 */}
-                          {quotas.sisaN2 > 0 && (
-                            <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN2 ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                              <input
-                                type="checkbox"
-                                checked={includeN2}
-                                disabled={disableN2}
-                                onChange={(e) => setIncludeN2(e.target.checked)}
-                                className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-slate-700">Kuota 2 Tahun Lalu ({new Date().getFullYear() - 2})</span>
-                                <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN2} hari | Terpotong: <strong className="text-slate-700">{calcN2} hari</strong></span>
-                              </div>
-                            </label>
-                          )}
-
-                          {/* Checkbox N-1 */}
-                          {quotas.sisaN1 > 0 && (
-                            <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN1 ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                              <input
-                                type="checkbox"
-                                checked={includeN1}
-                                disabled={disableN1}
-                                onChange={(e) => setIncludeN1(e.target.checked)}
-                                className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-slate-700">Kuota Tahun Lalu ({new Date().getFullYear() - 1})</span>
-                                <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN1} hari | Terpotong: <strong className="text-slate-700">{calcN1} hari</strong></span>
-                              </div>
-                            </label>
-                          )}
-
-                          {/* Checkbox N */}
-                          <label className={`flex items-start gap-2.5 text-xs font-semibold cursor-pointer ${disableN ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                            <input
-                              type="checkbox"
-                              checked={includeN}
-                              disabled={disableN}
-                              onChange={(e) => setIncludeN(e.target.checked)}
-                              className="w-4 h-4 text-primary border-slate-300 rounded mt-0.5 focus:ring-primary accent-primary"
-                            />
-                            <div className="flex flex-col">
-                              <span className="text-slate-700">Kuota Tahun Ini ({new Date().getFullYear()})</span>
-                              <span className="text-[10px] text-slate-400 font-normal">Sisa: {quotas.sisaN} hari | Terpotong: <strong className="text-slate-700">{calcN} hari</strong></span>
+                    {/* Unified Quota & Allocation Card Column */}
+                    {dates.length > 0 && (
+                      <div className="flex-1 w-full max-w-sm bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 animate-in fade-in duration-300">
+                        {/* Title & Quota Balance Cards */}
+                        <div className="space-y-2">
+                          <span className="block text-slate-700 font-bold text-xs uppercase tracking-wider">Saldo Kuota Cuti</span>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
+                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear()}</span>
+                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN}</span>
+                              <span className="block text-[8px] text-slate-500">Sisa (N)</span>
                             </div>
-                          </label>
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
+                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear() - 1}</span>
+                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN1}</span>
+                              <span className="block text-[8px] text-slate-500">Sisa (N-1)</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
+                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear() - 2}</span>
+                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN2}</span>
+                              <span className="block text-[8px] text-slate-500">Sisa (N-2)</span>
+                            </div>
+                          </div>
                         </div>
 
-                        {isQuotaInsufficient && (
-                          <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                            <p className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Kuota Terpilih Kurang!</p>
-                            <p className="opacity-90 font-medium">
-                              Diperlukan {dates.length} hari, tetapi hanya tersedia {totalCheckedQuota} hari pada kuota aktif.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIncludeN(true)
-                                setIncludeN1(true)
-                                setIncludeN2(true)
-                              }}
-                              className="text-primary hover:underline font-bold inline-block pt-0.5 text-left"
-                            >
-                              Reset ke Rekomendasi (FIFO)
-                            </button>
+                        {/* Allocation section (only for Tahunan) */}
+                        {category === 'Tahunan' && (
+                          <div className="space-y-4 pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                                Alokasi Potongan Kuota ({dates.length} Hari)
+                              </h3>
+                            </div>
+
+                            {/* Insufficient Quota warning */}
+                            {isQuotaInsufficient ? (
+                              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs space-y-1 animate-in slide-in-from-top-2 duration-300">
+                                <p className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4 text-red-600" /> Kuota Tidak Cukup!</p>
+                                <p className="opacity-90 leading-relaxed font-medium">
+                                  Dibutuhkan {dates.length} hari, tetapi total sisa kuota hanya {totalAvailableQuota} hari.
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                {/* Row sliders (compact layout) */}
+                                <div className="space-y-3">
+                                  {/* Slider N-2 */}
+                                  {quotas.sisaN2 > 0 && (
+                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
+                                      {/* Left: Year only */}
+                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                        {new Date().getFullYear() - 2}
+                                      </span>
+                                      {/* Center: Slider & Buttons */}
+                                      <div className="flex-1 flex items-center gap-1 min-w-0">
+                                        <button
+                                          type="button"
+                                          disabled={n2ReducedSelected <= 0 || totalAllocated === dates.length}
+                                          onClick={() => changeAllocation('N2', n2ReducedSelected - 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          -
+                                        </button>
+                                        <input
+                                          type="range"
+                                          min="0"
+                                          max={quotas.sisaN2}
+                                          value={n2ReducedSelected}
+                                          onChange={(e) => changeAllocation('N2', parseInt(e.target.value, 10) || 0)}
+                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={n2ReducedSelected >= quotas.sisaN2 || (totalAllocated === dates.length && n1ReducedSelected === 0 && nReducedSelected === 0)}
+                                          onClick={() => changeAllocation('N2', n2ReducedSelected + 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                      {/* Right: Selected Days */}
+                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+                                        {n2ReducedSelected} hari
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Slider N-1 */}
+                                  {quotas.sisaN1 > 0 && (
+                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
+                                      {/* Left: Year only */}
+                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                        {new Date().getFullYear() - 1}
+                                      </span>
+                                      {/* Center: Slider & Buttons */}
+                                      <div className="flex-1 flex items-center gap-1 min-w-0">
+                                        <button
+                                          type="button"
+                                          disabled={n1ReducedSelected <= 0 || totalAllocated === dates.length}
+                                          onClick={() => changeAllocation('N1', n1ReducedSelected - 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          -
+                                        </button>
+                                        <input
+                                          type="range"
+                                          min="0"
+                                          max={quotas.sisaN1}
+                                          value={n1ReducedSelected}
+                                          onChange={(e) => changeAllocation('N1', parseInt(e.target.value, 10) || 0)}
+                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={n1ReducedSelected >= quotas.sisaN1 || (totalAllocated === dates.length && n2ReducedSelected === 0 && nReducedSelected === 0)}
+                                          onClick={() => changeAllocation('N1', n1ReducedSelected + 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                      {/* Right: Selected Days */}
+                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+                                        {n1ReducedSelected} hari
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Slider N */}
+                                  {quotas.sisaN > 0 && (
+                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
+                                      {/* Left: Year only */}
+                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                        {new Date().getFullYear()}
+                                      </span>
+                                      {/* Center: Slider & Buttons */}
+                                      <div className="flex-1 flex items-center gap-1 min-w-0">
+                                        <button
+                                          type="button"
+                                          disabled={nReducedSelected <= 0 || totalAllocated === dates.length}
+                                          onClick={() => changeAllocation('N', nReducedSelected - 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          -
+                                        </button>
+                                        <input
+                                          type="range"
+                                          min="0"
+                                          max={quotas.sisaN}
+                                          value={nReducedSelected}
+                                          onChange={(e) => changeAllocation('N', parseInt(e.target.value, 10) || 0)}
+                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={nReducedSelected >= quotas.sisaN || (totalAllocated === dates.length && n2ReducedSelected === 0 && n1ReducedSelected === 0)}
+                                          onClick={() => changeAllocation('N', nReducedSelected + 1)}
+                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                      {/* Right: Selected Days */}
+                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+                                        {nReducedSelected} hari
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {totalAllocated !== dates.length && (
+                                  <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-200">
+                                    <button
+                                      type="button"
+                                      onClick={handleResetAllocation}
+                                      className="text-primary hover:underline font-bold text-[10px] inline-block text-left"
+                                    >
+                                      Auto-Alokasikan (FIFO)
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-
-                    {dates.length === 0 && (
-                      <p className="text-sm text-slate-500 mt-4 italic text-center w-full">
-                        Harap pilih setidaknya satu tanggal dari kalender.
-                      </p>
-                    )}
-                    {dates.some(d => d.getDay() === 0 || d.getDay() === 6) && (
-                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-sm animate-in fade-in zoom-in duration-300 max-w-sm w-full">
-                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="block mb-0.5 text-amber-900">Peringatan Akhir Pekan!</strong>
-                          <p className="opacity-90 leading-relaxed">
-                            Anda memilih hari Sabtu atau Minggu. Hari kerja biasanya Senin hingga Jumat.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    ) }
                   </div>
                 </div>
 
@@ -715,59 +1154,29 @@ export default function LeaveFormPage() {
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-slate-100">
-                      <div className="flex flex-col gap-6 max-w-md w-full">
-                        <div className="space-y-3 w-full">
-                          <Label className="text-slate-600 font-semibold">Tujuan Surat Kepada Yth.</Label>
-                          <div className="flex items-center gap-6 pt-1 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full">
-                            <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                              <input
-                                type="radio"
-                                name="recipientType"
-                                value="Lurah"
-                                checked={recipientType === 'Lurah'}
-                                onChange={() => setRecipientType('Lurah')}
-                                className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                              />
-                              <span>Lurah</span>
-                            </Label>
-                            <Label className="flex items-center gap-2 font-medium cursor-pointer">
-                              <input
-                                type="radio"
-                                name="recipientType"
-                                value="Camat"
-                                checked={recipientType === 'Camat'}
-                                onChange={() => setRecipientType('Camat')}
-                                className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
-                              />
-                              <span>Camat</span>
-                            </Label>
-                          </div>
+                      <div className="flex flex-col gap-4 max-w-md w-full">
+                        <div className="space-y-2 w-full">
+                          <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
+                          <SearchableSelect
+                            value={atasanId}
+                            onChange={setAtasanId}
+                            options={superiorOptions}
+                            placeholder="Pilih Atasan Langsung"
+                            searchPlaceholder="Cari atasan langsung..."
+                            className={errors.atasanId ? 'border-red-500 ring-red-500' : ''}
+                          />
                         </div>
-
-                        <div className="space-y-4 w-full">
-                          <div className="space-y-2 w-full">
-                            <Label className="text-slate-600 font-semibold">Atasan Langsung</Label>
-                            <SearchableSelect
-                              value={atasanId}
-                              onChange={setAtasanId}
-                              options={superiorOptions}
-                              placeholder="Pilih Atasan Langsung"
-                              searchPlaceholder="Cari atasan langsung..."
-                              className={errors.atasanId ? 'border-red-500 ring-red-500' : ''}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2 w-full">
-                            <Label className="text-slate-600 font-semibold">Pejabat Berwenang</Label>
-                            <SearchableSelect
-                              value={pejabatId}
-                              onChange={setPejabatId}
-                              options={superiorOptions}
-                              placeholder="Pilih Pejabat Berwenang"
-                              searchPlaceholder="Cari pejabat berwenang..."
-                              className={errors.pejabatId ? 'border-red-500 ring-red-500' : ''}
-                            />
-                          </div>
+                        
+                        <div className="space-y-2 w-full">
+                          <Label className="text-slate-650 font-semibold">Pejabat Berwenang</Label>
+                          <SearchableSelect
+                            value={pejabatId}
+                            onChange={setPejabatId}
+                            options={superiorOptions}
+                            placeholder="Pilih Pejabat Berwenang"
+                            searchPlaceholder="Cari pejabat berwenang..."
+                            className={errors.pejabatId ? 'border-red-500 ring-red-500' : ''}
+                          />
                         </div>
                       </div>
                     </div>
@@ -832,7 +1241,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                 <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas: { sisaN: quotas.sisaN - calcN, sisaN1: quotas.sisaN1 - calcN1, sisaN2: quotas.sisaN2 - calcN2 }, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate }} />
+                 <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas: { sisaN: quotas.sisaN - calcN, sisaN1: quotas.sisaN1 - calcN1, sisaN2: quotas.sisaN2 - calcN2 }, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate, requestDate }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>

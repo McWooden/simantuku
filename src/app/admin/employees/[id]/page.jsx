@@ -329,6 +329,7 @@ export default async function UserProfilePage({ params }) {
                         pejabat: leave.pejabat,
                         isAtasanApproved: leave.is_atasan_approved,
                         isPejabatApproved: leave.is_pejabat_approved,
+                        requestDate: leave.request_date,
                         quotas: {
                           sisaN: leave.status === 'acc'
                             ? (leave.n_balance !== null ? leave.n_balance : 0) + (leave.n_reduced || 0)

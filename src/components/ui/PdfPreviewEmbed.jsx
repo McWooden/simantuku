@@ -44,6 +44,7 @@ export function PdfPreviewEmbed({ request }) {
           pejabat: request.pejabat,
           isAtasanApproved: request.is_atasan_approved,
           isPejabatApproved: request.is_pejabat_approved,
+          requestDate: request.request_date,
           quotas
         }
 

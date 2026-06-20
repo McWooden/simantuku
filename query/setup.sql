@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS cuti (
   pejabat_id UUID REFERENCES employees(id) ON DELETE SET NULL,
   attachment_url TEXT,
   is_atasan_approved BOOLEAN DEFAULT false,
-  is_pejabat_approved BOOLEAN DEFAULT false
+  is_pejabat_approved BOOLEAN DEFAULT false,
+  request_date DATE DEFAULT CURRENT_DATE
 );
 -- ==========================================
 -- RUN THESE MIGRATIONS TO UPDATE EXISTING DB
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS cuti (
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS attachment_url TEXT;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS is_atasan_approved BOOLEAN DEFAULT false;
 -- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS is_pejabat_approved BOOLEAN DEFAULT false;
+-- ALTER TABLE cuti ADD COLUMN IF NOT EXISTS request_date DATE DEFAULT CURRENT_DATE;
 -- ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_password_enabled BOOLEAN DEFAULT false;
 
 -- ==========================================
