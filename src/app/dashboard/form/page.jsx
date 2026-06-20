@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { submitLeaveAction } from '@/app/actions/leaveActions'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Clock } from 'lucide-react'
+import { AlertCircle, Clock, Trash2, CheckCheck } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -124,6 +124,7 @@ export default function LeaveFormPage() {
   const totalAllocated = calcN + calcN1 + calcN2
   const totalAvailableQuota = quotas.sisaN + quotas.sisaN1 + quotas.sisaN2
   const isQuotaInsufficient = category === 'Tahunan' && dates.length > 0 && totalAvailableQuota < dates.length
+  const isAllocationInvalid = category === 'Tahunan' && dates.length > 0 && totalAllocated !== dates.length
 
   // Auto-allocate quotas using FIFO when dates or quotas change
   useEffect(() => {
@@ -172,74 +173,9 @@ export default function LeaveFormPage() {
     if (part === 'N') maxVal = quotas.sisaN
     val = Math.max(0, Math.min(maxVal, val))
 
-    let current = 0
-    if (part === 'N2') current = n2ReducedSelected
-    if (part === 'N1') current = n1ReducedSelected
-    if (part === 'N') current = nReducedSelected
-
-    const total = n2ReducedSelected + n1ReducedSelected + nReducedSelected
-
-    if (total === dates.length) {
-      if (val < current) {
-        // Block manual reduction once target is met
-        return
-      }
-      if (val > current) {
-        let delta = val - current
-        let otherParts = []
-        if (part === 'N2') {
-          otherParts = [
-            { name: 'N', val: nReducedSelected, set: setNReducedSelected },
-            { name: 'N1', val: n1ReducedSelected, set: setN1ReducedSelected }
-          ]
-        }
-        if (part === 'N1') {
-          otherParts = [
-            { name: 'N', val: nReducedSelected, set: setNReducedSelected },
-            { name: 'N2', val: n2ReducedSelected, set: setN2ReducedSelected }
-          ]
-        }
-        if (part === 'N') {
-          otherParts = [
-            { name: 'N1', val: n1ReducedSelected, set: setN1ReducedSelected },
-            { name: 'N2', val: n2ReducedSelected, set: setN2ReducedSelected }
-          ]
-        }
-
-        // Try to deduct delta from other parts (newest/latest pool first)
-        let p1 = otherParts[0]
-        let p2 = otherParts[1]
-
-        let deduct1 = Math.min(delta, p1.val)
-        delta -= deduct1
-        let deduct2 = Math.min(delta, p2.val)
-        delta -= deduct2
-
-        if (delta === 0) {
-          if (part === 'N2') setN2ReducedSelected(val)
-          if (part === 'N1') setN1ReducedSelected(val)
-          if (part === 'N') setNReducedSelected(val)
-
-          p1.set(p1.val - deduct1)
-          p2.set(p2.val - deduct2)
-        } else {
-          // Cap the increase to available room
-          const allowedIncrease = p1.val + p2.val
-          const cappedVal = current + allowedIncrease
-          if (part === 'N2') setN2ReducedSelected(cappedVal)
-          if (part === 'N1') setN1ReducedSelected(cappedVal)
-          if (part === 'N') setNReducedSelected(cappedVal)
-
-          p1.set(0)
-          p2.set(0)
-        }
-      }
-    } else {
-      // Under-allocated or over-allocated (e.g. date count changed), allow direct adjustment
-      if (part === 'N2') setN2ReducedSelected(val)
-      if (part === 'N1') setN1ReducedSelected(val)
-      if (part === 'N') setNReducedSelected(val)
-    }
+    if (part === 'N2') setN2ReducedSelected(val)
+    if (part === 'N1') setN1ReducedSelected(val)
+    if (part === 'N') setNReducedSelected(val)
   }
 
   const [isAdmin, setIsAdmin] = useState(false)
@@ -938,25 +874,33 @@ export default function LeaveFormPage() {
                     {/* Unified Quota & Allocation Card Column */}
                     {dates.length > 0 && (
                       <div className="flex-1 w-full max-w-sm bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 animate-in fade-in duration-300">
-                        {/* Title & Quota Balance Cards */}
-                        <div className="space-y-2">
-                          <span className="block text-slate-700 font-bold text-xs uppercase tracking-wider">Saldo Kuota Cuti</span>
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
-                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear()}</span>
-                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN}</span>
-                              <span className="block text-[8px] text-slate-500">Sisa (N)</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
-                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear() - 1}</span>
-                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN1}</span>
-                              <span className="block text-[8px] text-slate-500">Sisa (N-1)</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2">
-                              <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">{new Date().getFullYear() - 2}</span>
-                              <span className="block text-base font-extrabold text-slate-800">{quotas.sisaN2}</span>
-                              <span className="block text-[8px] text-slate-500">Sisa (N-2)</span>
-                            </div>
+                        {/* Comparison Header */}
+                        <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center text-xs font-semibold text-slate-700 min-h-[64px]">
+                          <div className="flex-1">
+                            <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Hari Cuti</div>
+                            <span className="text-lg font-extrabold text-slate-800">{dates.length}</span>
+                          </div>
+                          <span className="text-slate-300 font-bold px-2">:</span>
+                          <div className="flex-1">
+                            <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Alokasi Kuota</div>
+                            <span className="text-lg font-extrabold text-slate-800">{totalAllocated}</span>
+                          </div>
+                          <span className="text-slate-300 font-bold px-2">=</span>
+                          <div className="flex-[1.5]">
+                            <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Status</div>
+                            {totalAllocated === dates.length ? (
+                              <span className="inline-block px-2.5 py-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-700 rounded-full border border-emerald-200">
+                                Sesuai
+                              </span>
+                            ) : (
+                              <span className={`inline-block px-2.5 py-1 text-[10px] font-extrabold rounded-full border ${
+                                totalAllocated < dates.length 
+                                  ? 'bg-amber-100 text-amber-700 border-amber-200 animate-pulse' 
+                                  : 'bg-red-100 text-red-700 border-red-200'
+                              }`}>
+                                Tidak Sesuai
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -965,9 +909,29 @@ export default function LeaveFormPage() {
                           <div className="space-y-4 pt-2 border-t border-slate-100">
                             <div className="flex items-center justify-between">
                               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
-                                Alokasi Potongan Kuota ({dates.length} Hari)
+                                Alokasi Potongan Kuota
                               </h3>
                             </div>
+
+                            {/* Status Helper Text (underflow/overflow indicator) */}
+                            {totalAllocated !== dates.length && (
+                              <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1.5 py-0.5 animate-in fade-in duration-300">
+                                <span>
+                                  {totalAllocated < dates.length 
+                                    ? `Alokasi Kurang (${dates.length - totalAllocated} hari lagi)` 
+                                    : `Alokasi Kelebihan (${totalAllocated - dates.length} hari)`
+                                  }
+                                </span>
+                                <span>•</span>
+                                <button
+                                  type="button"
+                                  onClick={handleResetAllocation}
+                                  className="text-indigo-600 hover:text-indigo-700 font-bold hover:underline transition-all"
+                                >
+                                  Auto-alokasikan (FIFO)
+                                </button>
+                              </div>
+                            )}
 
                             {/* Insufficient Quota warning */}
                             {isQuotaInsufficient ? (
@@ -979,149 +943,230 @@ export default function LeaveFormPage() {
                               </div>
                             ) : (
                               <>
-                                {/* Row sliders (compact layout) */}
-                                <div className="space-y-3">
-                                  {/* Slider N-2 */}
+                                {/* Row block ratings (accessible grid) */}
+                                <div className="space-y-3 pt-1">
+                                  {/* Blocks N-2 */}
                                   {quotas.sisaN2 > 0 && (
-                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
-                                      {/* Left: Year only */}
-                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                    <div className="flex items-center justify-between gap-2 text-xs w-full py-1">
+                                      {/* Left: Year label only */}
+                                      <span className="font-bold text-slate-800 w-10 shrink-0 text-left">
                                         {new Date().getFullYear() - 2}
                                       </span>
-                                      {/* Center: Slider & Buttons */}
-                                      <div className="flex-1 flex items-center gap-1 min-w-0">
-                                        <button
-                                          type="button"
-                                          disabled={n2ReducedSelected <= 0 || totalAllocated === dates.length}
-                                          onClick={() => changeAllocation('N2', n2ReducedSelected - 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          -
-                                        </button>
-                                        <input
-                                          type="range"
-                                          min="0"
-                                          max={quotas.sisaN2}
-                                          value={n2ReducedSelected}
-                                          onChange={(e) => changeAllocation('N2', parseInt(e.target.value, 10) || 0)}
-                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={n2ReducedSelected >= quotas.sisaN2 || (totalAllocated === dates.length && n1ReducedSelected === 0 && nReducedSelected === 0)}
-                                          onClick={() => changeAllocation('N2', n2ReducedSelected + 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          +
-                                        </button>
+
+                                      {/* Center: Trash + Grid Box + CheckCheck */}
+                                      <div className="flex items-center gap-1.5 justify-center flex-1">
+                                        {n2ReducedSelected > 0 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N2', 0)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-slate-200 hover:border-red-500 hover:text-red-500 bg-transparent text-slate-400 transition-colors shrink-0"
+                                            title="Kosongkan tahun ini"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
+
+                                        <div className="grid grid-cols-6 gap-1 w-fit">
+                                          {Array.from({ length: quotas.sisaN2 }).map((_, idx) => {
+                                            const blockVal = idx + 1
+                                            const isSelected = blockVal <= n2ReducedSelected
+                                            return (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (n2ReducedSelected === blockVal) {
+                                                    changeAllocation('N2', blockVal - 1)
+                                                  } else {
+                                                    changeAllocation('N2', blockVal)
+                                                  }
+                                                }}
+                                                title={`Alokasikan ${blockVal} hari dari ${new Date().getFullYear() - 2}`}
+                                                className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold border transition-all select-none ${
+                                                  isSelected
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-extrabold'
+                                                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                }`}
+                                              >
+                                                {blockVal}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+
+                                        {n2ReducedSelected < quotas.sisaN2 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N2', quotas.sisaN2)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-indigo-200 hover:border-indigo-500 hover:text-indigo-500 bg-transparent text-indigo-600 transition-colors shrink-0"
+                                            title="Gunakan semua kuota tahun ini"
+                                          >
+                                            <CheckCheck className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
                                       </div>
-                                      {/* Right: Selected Days */}
-                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+
+                                      {/* Right: Selected Days counter */}
+                                      <span className="font-bold text-slate-800 min-w-[36px] shrink-0 text-right">
                                         {n2ReducedSelected} hari
                                       </span>
                                     </div>
                                   )}
 
-                                  {/* Slider N-1 */}
+                                  {/* Blocks N-1 */}
                                   {quotas.sisaN1 > 0 && (
-                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
-                                      {/* Left: Year only */}
-                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                    <div className="flex items-center justify-between gap-2 text-xs w-full py-1">
+                                      {/* Left: Year label only */}
+                                      <span className="font-bold text-slate-800 w-10 shrink-0 text-left">
                                         {new Date().getFullYear() - 1}
                                       </span>
-                                      {/* Center: Slider & Buttons */}
-                                      <div className="flex-1 flex items-center gap-1 min-w-0">
-                                        <button
-                                          type="button"
-                                          disabled={n1ReducedSelected <= 0 || totalAllocated === dates.length}
-                                          onClick={() => changeAllocation('N1', n1ReducedSelected - 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          -
-                                        </button>
-                                        <input
-                                          type="range"
-                                          min="0"
-                                          max={quotas.sisaN1}
-                                          value={n1ReducedSelected}
-                                          onChange={(e) => changeAllocation('N1', parseInt(e.target.value, 10) || 0)}
-                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={n1ReducedSelected >= quotas.sisaN1 || (totalAllocated === dates.length && n2ReducedSelected === 0 && nReducedSelected === 0)}
-                                          onClick={() => changeAllocation('N1', n1ReducedSelected + 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          +
-                                        </button>
+
+                                      {/* Center: Trash + Grid Box + CheckCheck */}
+                                      <div className="flex items-center gap-1.5 justify-center flex-1">
+                                        {n1ReducedSelected > 0 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N1', 0)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-slate-200 hover:border-red-500 hover:text-red-500 bg-transparent text-slate-400 transition-colors shrink-0"
+                                            title="Kosongkan tahun ini"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
+
+                                        <div className="grid grid-cols-6 gap-1 w-fit">
+                                          {Array.from({ length: quotas.sisaN1 }).map((_, idx) => {
+                                            const blockVal = idx + 1
+                                            const isSelected = blockVal <= n1ReducedSelected
+                                            return (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (n1ReducedSelected === blockVal) {
+                                                    changeAllocation('N1', blockVal - 1)
+                                                  } else {
+                                                    changeAllocation('N1', blockVal)
+                                                  }
+                                                }}
+                                                title={`Alokasikan ${blockVal} hari dari ${new Date().getFullYear() - 1}`}
+                                                className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold border transition-all select-none ${
+                                                  isSelected
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-extrabold'
+                                                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                }`}
+                                              >
+                                                {blockVal}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+
+                                        {n1ReducedSelected < quotas.sisaN1 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N1', quotas.sisaN1)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-indigo-200 hover:border-indigo-500 hover:text-indigo-500 bg-transparent text-indigo-600 transition-colors shrink-0"
+                                            title="Gunakan semua kuota tahun ini"
+                                          >
+                                            <CheckCheck className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
                                       </div>
-                                      {/* Right: Selected Days */}
-                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+
+                                      {/* Right: Selected Days counter */}
+                                      <span className="font-bold text-slate-800 min-w-[36px] shrink-0 text-right">
                                         {n1ReducedSelected} hari
                                       </span>
                                     </div>
                                   )}
 
-                                  {/* Slider N */}
+                                  {/* Blocks N */}
                                   {quotas.sisaN > 0 && (
-                                    <div className="flex items-center justify-between gap-3 text-xs w-full">
-                                      {/* Left: Year only */}
-                                      <span className="font-bold text-slate-800 w-12 shrink-0 text-left">
+                                    <div className="flex items-center justify-between gap-2 text-xs w-full py-1">
+                                      {/* Left: Year label only */}
+                                      <span className="font-bold text-slate-800 w-10 shrink-0 text-left">
                                         {new Date().getFullYear()}
                                       </span>
-                                      {/* Center: Slider & Buttons */}
-                                      <div className="flex-1 flex items-center gap-1 min-w-0">
-                                        <button
-                                          type="button"
-                                          disabled={nReducedSelected <= 0 || totalAllocated === dates.length}
-                                          onClick={() => changeAllocation('N', nReducedSelected - 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          -
-                                        </button>
-                                        <input
-                                          type="range"
-                                          min="0"
-                                          max={quotas.sisaN}
-                                          value={nReducedSelected}
-                                          onChange={(e) => changeAllocation('N', parseInt(e.target.value, 10) || 0)}
-                                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={nReducedSelected >= quotas.sisaN || (totalAllocated === dates.length && n2ReducedSelected === 0 && n1ReducedSelected === 0)}
-                                          onClick={() => changeAllocation('N', nReducedSelected + 1)}
-                                          className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed select-none font-bold text-xs"
-                                        >
-                                          +
-                                        </button>
+
+                                      {/* Center: Trash + Grid Box + CheckCheck */}
+                                      <div className="flex items-center gap-1.5 justify-center flex-1">
+                                        {nReducedSelected > 0 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N', 0)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-slate-200 hover:border-red-500 hover:text-red-500 bg-transparent text-slate-400 transition-colors shrink-0"
+                                            title="Kosongkan tahun ini"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
+
+                                        <div className="grid grid-cols-6 gap-1 w-fit">
+                                          {Array.from({ length: quotas.sisaN }).map((_, idx) => {
+                                            const blockVal = idx + 1
+                                            const isSelected = blockVal <= nReducedSelected
+                                            return (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (nReducedSelected === blockVal) {
+                                                    changeAllocation('N', blockVal - 1)
+                                                  } else {
+                                                    changeAllocation('N', blockVal)
+                                                  }
+                                                }}
+                                                title={`Alokasikan ${blockVal} hari dari ${new Date().getFullYear()}`}
+                                                className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold border transition-all select-none ${
+                                                  isSelected
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-extrabold'
+                                                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                }`}
+                                              >
+                                                {blockVal}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+
+                                        {nReducedSelected < quotas.sisaN ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => changeAllocation('N', quotas.sisaN)}
+                                            className="w-5 h-5 flex items-center justify-center rounded border border-indigo-200 hover:border-indigo-500 hover:text-indigo-500 bg-transparent text-indigo-600 transition-colors shrink-0"
+                                            title="Gunakan semua kuota tahun ini"
+                                          >
+                                            <CheckCheck className="w-3 h-3" />
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 h-5 shrink-0" />
+                                        )}
                                       </div>
-                                      {/* Right: Selected Days */}
-                                      <span className="font-bold text-slate-800 w-11 shrink-0 text-right">
+
+                                      {/* Right: Selected Days counter */}
+                                      <span className="font-bold text-slate-800 min-w-[36px] shrink-0 text-right">
                                         {nReducedSelected} hari
                                       </span>
                                     </div>
                                   )}
                                 </div>
-
-                                {totalAllocated !== dates.length && (
-                                  <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-200">
-                                    <button
-                                      type="button"
-                                      onClick={handleResetAllocation}
-                                      className="text-primary hover:underline font-bold text-[10px] inline-block text-left"
-                                    >
-                                      Auto-Alokasikan (FIFO)
-                                    </button>
-                                  </div>
-                                )}
                               </>
                             )}
                           </div>
                         )}
                       </div>
-                    ) }
+                    )}
                   </div>
                 </div>
 
@@ -1201,7 +1246,7 @@ export default function LeaveFormPage() {
                       variant="outline"
                       size="lg" 
                       className="min-w-[150px] shadow-sm rounded-full" 
-                      disabled={loading || checkingPending || isQuotaInsufficient}
+                      disabled={loading || checkingPending || isQuotaInsufficient || isAllocationInvalid}
                       onClick={() => handleSubmit(null, 'pending')}
                     >
                       Kirim Permintaan
@@ -1211,7 +1256,7 @@ export default function LeaveFormPage() {
                         type="button" 
                         size="lg" 
                         className="min-w-[180px] shadow-sm rounded-full bg-primary hover:bg-primary/95 text-white" 
-                        disabled={loading || checkingPending || isQuotaInsufficient}
+                        disabled={loading || checkingPending || isQuotaInsufficient || isAllocationInvalid}
                         onClick={() => handleSubmit(null, 'acc')}
                       >
                         Kirim Permintaan & Setujui
@@ -1223,7 +1268,7 @@ export default function LeaveFormPage() {
                     type="submit" 
                     size="lg" 
                     className="min-w-[150px] shadow-sm rounded-full" 
-                    disabled={loading || hasPending || checkingPending || isQuotaInsufficient}
+                    disabled={loading || hasPending || checkingPending || isQuotaInsufficient || isAllocationInvalid}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {loading ? 'Mengirim...' : hasPending ? 'Permintaan Diblokir' : 'Kirim Permintaan'}
