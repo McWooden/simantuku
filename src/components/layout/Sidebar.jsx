@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle, PlayCircle } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle } from 'lucide-react'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()
@@ -34,7 +34,6 @@ export function Sidebar({
   const pathname = usePathname()
 
   const isHelpActive = pathname === '/help'
-  const isTutorialActive = pathname === '/tutorial'
 
   return (
     <>
@@ -125,7 +124,7 @@ export function Sidebar({
             </div>
           )}        </div>
 
-        {/* FAQ & Support & Tutorial links (above profile) */}
+        {/* FAQ & Support link (above profile) */}
         <div className="px-6 pt-4 border-t border-slate-50 mt-auto">
           <div className="px-2 flex items-center gap-4">
             <Link
@@ -141,21 +140,6 @@ export function Sidebar({
                 : 'text-slate-400 group-hover:text-primary'
                 }`} />
               FAQ & Support
-            </Link>
-
-            <Link
-              href="/tutorial"
-              onClick={() => setIsOpen(false)}
-              className={`group text-[11px] font-semibold flex items-center gap-1.5 ${isTutorialActive
-                ? 'text-primary'
-                : 'text-slate-400 hover:text-primary'
-                }`}
-            >
-              <PlayCircle className={`w-3.5 h-3.5 ${isTutorialActive
-                ? 'text-primary'
-                : 'text-slate-400 group-hover:text-primary'
-                }`} />
-              Tutorial
             </Link>
           </div>
         </div>

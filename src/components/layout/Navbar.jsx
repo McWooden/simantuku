@@ -93,7 +93,6 @@ export function Navbar() {
                 </>
               )}
               <Link href="/help" className="hover:text-white transition-colors">FAQ & Support</Link>
-              <Link href="/tutorial" className="hover:text-white transition-colors">Tutorial</Link>
             </div>
           </div>
 
@@ -133,7 +132,6 @@ export function Navbar() {
               </>
             )}
             <Link href="/help" onClick={() => setIsMenuOpen(false)} className="hover:text-white text-white/90 transition-colors text-sm font-semibold py-1">FAQ & Support</Link>
-            <Link href="/tutorial" onClick={() => setIsMenuOpen(false)} className="hover:text-white text-white/90 transition-colors text-sm font-semibold py-1">Tutorial</Link>
           </div>
         )}
       </nav>
