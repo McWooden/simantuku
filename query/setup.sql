@@ -43,6 +43,13 @@ CREATE TABLE IF NOT EXISTS cuti (
   is_pejabat_approved BOOLEAN DEFAULT false,
   request_date DATE DEFAULT CURRENT_DATE
 );
+
+CREATE INDEX IF NOT EXISTS idx_cuti_created_at ON cuti(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cuti_employee_id ON cuti(employee_id);
+CREATE INDEX IF NOT EXISTS idx_cuti_atasan_id ON cuti(atasan_id);
+CREATE INDEX IF NOT EXISTS idx_cuti_pejabat_id ON cuti(pejabat_id);
+CREATE INDEX IF NOT EXISTS idx_cuti_status ON cuti(status);
+
 -- ==========================================
 -- RUN THESE MIGRATIONS TO UPDATE EXISTING DB
 -- ==========================================

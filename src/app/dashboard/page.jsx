@@ -388,7 +388,8 @@ export default async function DashboardPage() {
               return (
                 <div
                   key={leave.id}
-                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors duration-300 flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-5"
+                  id={leave.id}
+                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 target:border-primary target:ring-2 target:ring-primary/20 target:shadow-md transition-all duration-500 flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-5 scroll-mt-20"
                 >
                   {/* Left Column: Icon and Details */}
                   <div className="flex items-start gap-4 flex-1 min-w-0">

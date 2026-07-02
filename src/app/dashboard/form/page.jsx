@@ -22,7 +22,8 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { generateLeavePDF, COORDS } from '@/lib/pdfGenerator'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FaArrowRightArrowLeft } from 'react-icons/fa6'
 import {
   Dialog,
   DialogContent,
@@ -181,17 +182,20 @@ export default function LeaveFormPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
   const [employeesList, setEmployeesList] = useState([])
+  const [loadingEmployees, setLoadingEmployees] = useState(false)
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState('')
+  const [showSelector, setShowSelector] = useState(false)
   const [loggedInEmployeeId, setLoggedInEmployeeId] = useState('')
   const [showRedirectModal, setShowRedirectModal] = useState(false)
-  const [countdown, setCountdown] = useState(3)
+  const [countdown, setCountdown] = useState(10)
+  const [submittedId, setSubmittedId] = useState('')
 
   // Countdown redirect effect
   useEffect(() => {
     if (!showRedirectModal) return
 
     if (countdown === 0) {
-      router.push('/dashboard')
+      router.push(`/dashboard#${submittedId}`)
       return
     }
 
@@ -200,7 +204,7 @@ export default function LeaveFormPage() {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [showRedirectModal, countdown, router])
+  }, [showRedirectModal, countdown, router, submittedId])
 
   const pegawaiOptions = employeesList.map(emp => ({
     value: emp.id,
@@ -273,6 +277,7 @@ export default function LeaveFormPage() {
               setIsAdmin(true)
               if (employee.role === 'manager') setIsManager(true)
               setSelectedOnBehalfId(employee.id)
+              setLoadingEmployees(true)
               const { data: allEmployees, error: empError } = await supabase
                 .from('employees')
                 .select('id, name, nip, unit, position, phone_number, start_date')
@@ -280,6 +285,7 @@ export default function LeaveFormPage() {
               if (allEmployees && !empError) {
                 setEmployeesList(allEmployees)
               }
+              setLoadingEmployees(false)
             }
           }
         }
@@ -323,6 +329,20 @@ export default function LeaveFormPage() {
     } catch (e) {
       console.error(e)
     }
+  }
+
+  const handleNextEmployee = () => {
+    if (employeesList.length === 0) return
+    const currentIndex = employeesList.findIndex(e => e.id === (selectedOnBehalfId || employeeId))
+    const nextIndex = (currentIndex + 1) % employeesList.length
+    handleSelectEmployee(employeesList[nextIndex].id)
+  }
+
+  const handlePrevEmployee = () => {
+    if (employeesList.length === 0) return
+    const currentIndex = employeesList.findIndex(e => e.id === (selectedOnBehalfId || employeeId))
+    const prevIndex = (currentIndex - 1 + employeesList.length) % employeesList.length
+    handleSelectEmployee(employeesList[prevIndex].id)
   }
 
   const [showPreview, setShowPreview] = useState(false)
@@ -490,8 +510,9 @@ export default function LeaveFormPage() {
       if (res?.error) {
         setError(res.error)
       } else {
+        setSubmittedId(res.id || '')
         setShowRedirectModal(true)
-        setCountdown(3)
+        setCountdown(10)
       }
     } catch (err) {
       console.error('Submission error:', err)
@@ -503,21 +524,22 @@ export default function LeaveFormPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+      <div className={`mb-6 flex flex-row items-center justify-between border-b border-slate-100 pb-4 transition-all duration-500 ${showPreview ? 'w-full' : 'max-w-3xl mx-auto'}`}>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Ajukan Cuti</h1>
+          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm">
+            Selesaikan langkah-langkah untuk mengirim formulir Anda
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden lg:flex gap-2 shrink-0 ml-4 rounded-full shadow-sm">
+          {showPreview ? <><EyeOff className="w-4 h-4" /> Sembunyikan Pratinjau</> : <><Eye className="w-4 h-4" /> Tampilkan Pratinjau</>}
+        </Button>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 
         {/* Left Form Column */}
         <div className={`transition-all duration-500 w-full ${showPreview ? 'lg:w-[45%]' : 'lg:max-w-3xl lg:mx-auto'}`}>
-          <div className="mb-6 flex flex-row items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Ajukan Cuti</h1>
-              <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm">
-                Selesaikan langkah-langkah untuk mengirim formulir Anda
-              </p>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden lg:flex gap-2 shrink-0 ml-4 rounded-full shadow-sm">
-              {showPreview ? <><EyeOff className="w-4 h-4" /> Sembunyikan Pratinjau</> : <><Eye className="w-4 h-4" /> Tampilkan Pratinjau</>}
-            </Button>
-          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             {hasPending && !isAdmin && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl flex gap-3 text-amber-800 shadow-sm mb-6">
@@ -534,26 +556,6 @@ export default function LeaveFormPage() {
             <div className={`space-y-6 ${(hasPending && !isAdmin) ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
 
               <div className="flex flex-col space-y-12 pt-2">
-                {isAdmin && (
-                  <div className="space-y-4 bg-indigo-50/40 p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300 w-full">
-                    <h2 className="text-xl font-bold text-indigo-950 flex items-center gap-2 border-b border-indigo-100/60 pb-3">
-                      <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span> Ajukan atas Nama Pegawai (Admin)
-                    </h2>
-                    <div className="space-y-2 w-full max-w-md">
-                      <Label htmlFor="onBehalf" className="text-indigo-900 font-semibold">Pilih Pegawai</Label>
-                      <SearchableSelect
-                        value={selectedOnBehalfId || employeeId}
-                        onChange={handleSelectEmployee}
-                        options={pegawaiOptions}
-                        placeholder="Pilih Pegawai"
-                        searchPlaceholder="Cari pegawai..."
-                      />
-                      <p className="text-xs text-indigo-700/80 font-medium">
-                        *Sebagai Admin, Anda dapat mengirim formulir ini atas nama pegawai terpilih. Status pengajuan akan langsung disetujui (ACC).
-                      </p>
-                    </div>
-                  </div>
-                )}
                 {/* Header-like Right-aligned controls (Date and Recipient) */}
                 <div className="flex flex-col items-end gap-2 text-right w-full mb-4">
                   {/* Request Date */}
@@ -738,6 +740,33 @@ export default function LeaveFormPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Employee Info Header Card */}
+                {isAdmin ? (
+                  <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm p-4 animate-in fade-in duration-300">
+                    <div className="space-y-3">
+                      <Label htmlFor="onBehalf" className="text-slate-500 font-bold text-xs uppercase tracking-wider">Pilih / Cari Pegawai</Label>
+                      <SearchableSelect
+                        value={selectedOnBehalfId || employeeId}
+                        onChange={(id) => {
+                          handleSelectEmployee(id)
+                        }}
+                        options={pegawaiOptions}
+                        placeholder="Pilih Pegawai"
+                        searchPlaceholder="Cari pegawai..."
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-left flex flex-col justify-center">
+                    <span className="font-extrabold text-slate-800 text-sm sm:text-base">
+                      {employeeName || '-'}
+                    </span>
+                    <span className="text-slate-400 text-xs font-semibold mt-0.5">
+                      NIP: {employeeNip || '-'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Section 2: Jadwal Cuti (Kategori Terintegrasi) */}
                 <div className="space-y-6">
@@ -1286,7 +1315,7 @@ export default function LeaveFormPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Dokumen Langsung</h2>
               <div className="flex items-center gap-2">
-                 <DownloadPdfButton pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas: { sisaN: quotas.sisaN - calcN, sisaN1: quotas.sisaN1 - calcN1, sisaN2: quotas.sisaN2 - calcN2 }, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate, requestDate }} />
+                 <DownloadPdfButton showDownload={false} pdfData={{ employeeId, name: employeeName, nip: employeeNip, unit: employeeUnit, position: employeePosition, phone: employeePhone, address, category, dates, note, quotas: { sisaN: quotas.sisaN - calcN, sisaN1: quotas.sisaN1 - calcN1, sisaN2: quotas.sisaN2 - calcN2 }, customCoords, atasan: superiors.find(s => s.id === atasanId), pejabat: superiors.find(s => s.id === pejabatId), recipientType, employeeStartDate, requestDate }} />
                 <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="lg:hidden text-xs">
                   Tutup Pratinjau
                 </Button>
@@ -1318,7 +1347,7 @@ export default function LeaveFormPage() {
       {/* Redirect Countdown Modal */}
       <Dialog open={showRedirectModal} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md [&>button]:hidden flex flex-col items-center justify-center p-8 text-center rounded-3xl border border-slate-100 shadow-2xl">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-100 shadow-sm animate-bounce">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-100 shadow-sm">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <DialogHeader className="space-y-2">
@@ -1329,13 +1358,51 @@ export default function LeaveFormPage() {
           </DialogHeader>
           
           <div className="mt-6 flex flex-col items-center gap-2">
-            <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-lg border border-primary/20">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75"></span>
-              {countdown}
+            {/* Clock-like Circular Progress Loader */}
+            <div className="relative flex items-center justify-center w-20 h-20 text-primary font-bold text-xl my-2">
+              <svg className="w-20 h-20 transform -rotate-90 absolute">
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  stroke="#f1f5f9"
+                  strokeWidth="4"
+                  fill="transparent"
+                />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="transparent"
+                  className="text-primary transition-all duration-1000 ease-linear"
+                  strokeDasharray={213.63}
+                  strokeDashoffset={213.63 * (1 - countdown / 10)}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="z-10 text-slate-700 font-extrabold">{countdown}s</span>
             </div>
             <p className="text-xs text-slate-400 font-semibold mt-2 tracking-wide">
               Mengalihkan ke Dashboard...
             </p>
+          </div>
+
+          <div className="flex gap-3 w-full pt-4 border-t border-slate-100 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl h-11 text-xs font-semibold"
+              onClick={() => window.location.reload()}
+            >
+              Buat Permohonan Baru
+            </Button>
+            <Button
+              className="flex-1 rounded-xl h-11 text-xs font-semibold"
+              onClick={() => router.push(`/dashboard#${submittedId}`)}
+            >
+              Ke Dashboard
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

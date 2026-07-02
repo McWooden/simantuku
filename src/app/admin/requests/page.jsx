@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AdminRequestsList } from './AdminRequestsList'
+import { Suspense } from 'react'
 
 export default async function AdminRequestsPage() {
   const supabase = await createClient()
@@ -16,17 +17,6 @@ export default async function AdminRequestsPage() {
 
   if (employee?.role !== 'admin' && employee?.role !== 'manager') redirect('/dashboard')
 
-  // Fetch all requests with employee information
-  const { data: requests, error } = await supabase
-    .from('cuti')
-    .select(`
-      *,
-      employee:employees!employee_id (
-        name
-      )
-    `)
-    .order('created_at', { ascending: false })
-
   return (
     <div className="container mx-auto p-6 max-w-5xl space-y-6">
       <div className="flex justify-between items-center">
@@ -38,11 +28,17 @@ export default async function AdminRequestsPage() {
         </div>
       </div>
 
-      <AdminRequestsList 
-        initialRequests={requests || []} 
-        currentEmployeeId={employee.id} 
-        currentEmployeeRole={employee.role}
-      />
+      <Suspense fallback={
+        <div className="rounded-2xl border border-slate-200 bg-white p-20 flex flex-col items-center justify-center space-y-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <span className="text-sm font-semibold text-slate-500">Memuat antarmuka...</span>
+        </div>
+      }>
+        <AdminRequestsList 
+          currentEmployeeId={employee.id} 
+          currentEmployeeRole={employee.role}
+        />
+      </Suspense>
     </div>
   )
 }

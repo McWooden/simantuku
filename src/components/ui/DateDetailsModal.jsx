@@ -22,13 +22,17 @@ export function DateDetailsModal({ dates, children }) {
   }, [])
 
   // Convert string dates back to Date objects for the calendar
+  const sortedDates = [...dates].sort((a, b) => new Date(a) - new Date(b))
+  const firstDateFormatted = sortedDates.length > 0 
+    ? format(new Date(sortedDates[0]), "d MMM yyyy", { locale: id })
+    : "-"
   const dateObjects = dates.map(d => new Date(d))
 
   if (!mounted) {
     return children || (
       <button className="flex items-center gap-2 text-primary hover:underline group" type="button">
         <CalendarIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        <span>{dates.length} Days</span>
+        <span>{firstDateFormatted}</span>
       </button>
     )
   }
@@ -39,7 +43,7 @@ export function DateDetailsModal({ dates, children }) {
         {children || (
           <button className="flex items-center gap-2 text-primary hover:underline group" type="button">
             <CalendarIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span>{dates.length} Days</span>
+            <span>{firstDateFormatted}</span>
           </button>
         )}
       </DialogTrigger>

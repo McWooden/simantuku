@@ -167,7 +167,7 @@ export async function submitLeaveAction(payload) {
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/form')
   revalidatePath('/admin/requests')
-  return { success: true }
+  return { success: true, id: insertedCuti.id }
 }
 
 export async function updateLeaveStatusAction(requestId, newStatus) {
@@ -679,4 +679,141 @@ export async function deleteMultipleStorageFilesAction(paths) {
 
   return { success: true, deletedCount: data.length }
 }
+
+export async function getRequestsSummaryAction({ tab, searchQuery, currentEmployeeId }) {
+  const supabase = await createClient()
+
+  const { data: requests, error } = await supabase
+    .from('cuti')
+    .select(`
+      id,
+      created_at,
+      dates,
+      category,
+      atasan_id,
+      pejabat_id,
+      status,
+      is_atasan_approved,
+      is_pejabat_approved,
+      employee:employees!employee_id (
+        name
+      )
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error("Error fetching summary:", error)
+    return { groups: [], pendingMentionedCount: 0, pendingOthersActionCount: 0, totalCount: 0, mentionedCount: 0 }
+  }
+
+  // Filter by search query if present
+  let filtered = requests
+  if (searchQuery && searchQuery.trim()) {
+    const q = searchQuery.toLowerCase()
+    filtered = requests.filter(r => {
+      const name = (r.employee?.name || '').toLowerCase()
+      const category = (r.category || '').toLowerCase()
+      return name.includes(q) || category.includes(q)
+    })
+  }
+
+  // Calculate counts for mentioned requests
+  const mentionedRequests = filtered.filter(r => r.atasan_id === currentEmployeeId || r.pejabat_id === currentEmployeeId)
+  const mentionedCount = mentionedRequests.length
+  const totalCount = filtered.length
+
+  const pendingMentionedCount = mentionedRequests.filter(r => {
+    if (r.status !== 'pending') return false
+    const isAtasan = r.atasan_id === currentEmployeeId
+    const isPejabat = r.pejabat_id === currentEmployeeId
+    const needAtasanSign = isAtasan && !r.is_atasan_approved
+    const needPejabatSign = isPejabat && !r.is_pejabat_approved
+    return needAtasanSign || needPejabatSign
+  }).length
+
+  const pendingOthersActionCount = mentionedRequests.filter(r => {
+    if (r.status !== 'pending') return false
+    const isAtasan = r.atasan_id === currentEmployeeId
+    const isPejabat = r.pejabat_id === currentEmployeeId
+    const isSignedAtasan = isAtasan && r.is_atasan_approved
+    const isSignedPejabat = isPejabat && r.is_pejabat_approved
+    return isSignedAtasan || isSignedPejabat
+  }).length
+
+  // Filter by tab for grouping
+  const tabFiltered = tab === 'mentioned' ? mentionedRequests : filtered
+
+  // Group by month and count using first day from dates
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  const currentYear = new Date().getFullYear()
+
+  const groups = {}
+  tabFiltered.forEach(r => {
+    const firstDateStr = r.dates && r.dates.length > 0 ? r.dates[0] : r.created_at
+    const date = new Date(firstDateStr)
+    const month = date.getMonth()
+    const year = date.getFullYear()
+    
+    const groupKey = year === currentYear 
+      ? monthNames[month] 
+      : `${monthNames[month]} ${year}`
+
+    const monthId = `${year}-${String(month + 1).padStart(2, '0')}` // e.g. "2026-07"
+
+    if (!groups[monthId]) {
+      groups[monthId] = {
+        id: monthId,
+        label: groupKey,
+        ids: [],
+        count: 0,
+        year,
+        month
+      }
+    }
+    groups[monthId].ids.push(r.id)
+    groups[monthId].count++
+  })
+
+  return {
+    groups: Object.values(groups).sort((a, b) => b.id.localeCompare(a.id)),
+    pendingMentionedCount,
+    pendingOthersActionCount,
+    totalCount,
+    mentionedCount
+  }
+}
+
+export async function getRequestsForMonthAction({ requestIds }) {
+  if (!requestIds || requestIds.length === 0) return []
+  
+  const supabase = await createClient()
+
+  const { data: requests, error } = await supabase
+    .from('cuti')
+    .select(`
+      *,
+      employee:employees!employee_id (
+        name
+      )
+    `)
+    .in('id', requestIds)
+
+  if (error) {
+    console.error("Error fetching requests for month:", error)
+    return []
+  }
+
+  // Sort requests by the first date in dates array descending (newest first)
+  const sorted = requests.sort((a, b) => {
+    const dateA = new Date(a.dates && a.dates.length > 0 ? a.dates[0] : a.created_at)
+    const dateB = new Date(b.dates && b.dates.length > 0 ? b.dates[0] : b.created_at)
+    return dateB - dateA
+  })
+
+  return sorted
+}
+
 

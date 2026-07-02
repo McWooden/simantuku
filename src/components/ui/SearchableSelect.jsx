@@ -12,9 +12,11 @@ export function SearchableSelect({
   placeholder = 'Pilih...', 
   searchPlaceholder = 'Cari...', 
   className = '',
-  required = false
+  required = false,
+  defaultOpen = false,
+  onClose
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedValue, setSelectedValue] = useState(value !== undefined ? value : defaultValue)
   const containerRef = useRef(null)
@@ -54,11 +56,12 @@ export function SearchableSelect({
     function handleClickOutside(event) {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false)
+        if (onClose) onClose()
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [onClose])
 
   // Reset search query when dropdown opens/closes
   useEffect(() => {
@@ -83,6 +86,7 @@ export function SearchableSelect({
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false)
+      if (onClose) onClose()
     }
   }
 

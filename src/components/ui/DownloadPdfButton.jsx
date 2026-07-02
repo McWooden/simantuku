@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2, Eye } from 'lucide-react'
+import { Download, Loader2, ExternalLink } from 'lucide-react'
 import { generateLeavePDF, downloadBlob } from '@/lib/pdfGenerator'
 
-export function DownloadPdfButton({ pdfData, variant = "outline", size = "sm", className = "gap-2" }) {
+export function DownloadPdfButton({ pdfData, variant = "outline", size = "sm", className = "gap-2", showDownload = true }) {
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
@@ -39,13 +39,15 @@ export function DownloadPdfButton({ pdfData, variant = "outline", size = "sm", c
   return (
     <div className="flex items-center gap-2">
       <Button variant={variant} size={size} onClick={handlePreview} disabled={loading || loadingPreview} className={className} type="button">
-        {loadingPreview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-        <span className="hidden md:inline">Preview</span>
+        {loadingPreview ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+        <span className="hidden md:inline">Tab Baru</span>
       </Button>
-      <Button variant={variant} size={size} onClick={handleDownload} disabled={loading || loadingPreview} className={className} type="button">
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        <span className="hidden md:inline">Download</span>
-      </Button>
+      {showDownload && (
+        <Button variant={variant} size={size} onClick={handleDownload} disabled={loading || loadingPreview} className={className} type="button">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          <span className="hidden md:inline">Download</span>
+        </Button>
+      )}
     </div>
   )
 }
