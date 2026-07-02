@@ -332,3 +332,6 @@ AFTER DELETE ON public.cuti
 FOR EACH ROW
 EXECUTE FUNCTION public.heal_cuti_chain_after_delete();
 
+-- Enable Supabase Realtime for cuti table updates
+-- ALTER PUBLICATION supabase_realtime ADD TABLE cuti;
+

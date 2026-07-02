@@ -11,6 +11,7 @@ import { CalendarDays, PlusCircle, CheckCircle2, Clock, AlertCircle } from 'luci
 import { CancelLeaveButton } from './CancelLeaveButton'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { NipPasswordToggle } from '@/components/ui/NipPasswordToggle'
+import { FaArrowRight } from 'react-icons/fa6'
 
 function parseDateString(dateStr) {
   if (!dateStr) return null;
@@ -124,10 +125,9 @@ export default async function DashboardPage() {
   // Calculate leave quota using the new advanced bucket logic
   const { getLeaveQuotaOverviewAction } = await import('@/app/actions/leaveActions')
   const quotaOverview = await getLeaveQuotaOverviewAction(employee.id)
-  const remainingQuota = quotaOverview.totalRemaining
-  const totalAllowed = quotaOverview.totalAllowed
-  const progressPercent = quotaOverview.progressPercent
   const buckets = quotaOverview.buckets || []
+  const remainingQuota = buckets.reduce((sum, b) => sum + b.remaining, 0)
+  const totalAllowed = buckets.reduce((sum, b) => sum + b.total, 0)
   const currentYear = new Date().getFullYear();
 
   // Fetch recent leave history
@@ -202,32 +202,85 @@ export default async function DashboardPage() {
                       / {totalAllowed}
                     </span>
                   </div>
-                  {pendingLeave && (
-                    <p className="text-[10px] text-amber-600 font-semibold mt-2 leading-relaxed animate-pulse">
-                      ⚠️ Mencerminkan {pendingLeave.dates.length} hari dalam peninjauan (Sisa Estimasi: {remainingQuota - (pendingLeave.n_reduced || 0)} hari)
-                    </p>
-                  )}
                 </div>
                 <div className="p-3 bg-primary/10 rounded-xl text-primary">
                   <CalendarDays className="w-6 h-6" />
                 </div>
               </div>
 
-              <div className="mt-6 w-full bg-secondary rounded-full h-2.5 overflow-hidden">
-                <div
-                  className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-              </div>
+              {/* Multi-segment Progress Bar */}
+              {(() => {
+                const pendingDays = pendingLeave ? (pendingLeave.n_reduced || 0) + (pendingLeave.n1_reduced || 0) + (pendingLeave.n2_reduced || 0) : 0;
+                const usedQuota = totalAllowed - remainingQuota;
+                const availableQuota = Math.max(0, remainingQuota - pendingDays);
+
+                const availableWidth = (availableQuota / totalAllowed) * 100;
+                const pendingWidth = (pendingDays / totalAllowed) * 100;
+                const usedWidth = (usedQuota / totalAllowed) * 100;
+
+                return (
+                  <>
+                    <div className="mt-6 flex items-center gap-1.5 w-full bg-slate-100/50 p-0.5 rounded-full">
+                      {availableQuota > 0 && (
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${availableWidth}%` }}
+                          title={`Tersedia: ${availableQuota} hari`}
+                        />
+                      )}
+                      {pendingDays > 0 && (
+                        <div
+                          className="bg-orange-500 h-2 rounded-full transition-all duration-1000 ease-out animate-pulse"
+                          style={{ width: `${pendingWidth}%` }}
+                          title={`Ditinjau: ${pendingDays} hari`}
+                        />
+                      )}
+                      {usedQuota > 0 && (
+                        <div
+                          className="bg-slate-200 h-2 rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${usedWidth}%` }}
+                          title={`Digunakan: ${usedQuota} hari`}
+                        />
+                      )}
+                    </div>
+
+                    {/* Progress Bar Legend */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[10px] font-bold text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-primary block" />
+                        <span>Tersedia ({availableQuota} h)</span>
+                      </div>
+                      {pendingDays > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-orange-500 block" />
+                          <span className="text-orange-600">Ditinjau ({pendingDays} h)</span>
+                        </div>
+                      )}
+                      {usedQuota > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-200 block" />
+                          <span>Digunakan ({usedQuota} h)</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="mt-6 space-y-3">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Rincian Kuota</p>
                 {buckets.slice().reverse().map((bucket) => {
                   let estRemaining = bucket.remaining;
+                  let isEstimated = false;
                   if (pendingLeave) {
-                    if (bucket.year === currentYear) estRemaining -= (pendingLeave.n_reduced || 0);
-                    if (bucket.year === currentYear - 1) estRemaining -= (pendingLeave.n1_reduced || 0);
-                    if (bucket.year === currentYear - 2) estRemaining -= (pendingLeave.n2_reduced || 0);
+                    let reduced = 0;
+                    if (bucket.year === currentYear) reduced = (pendingLeave.n_reduced || 0);
+                    if (bucket.year === currentYear - 1) reduced = (pendingLeave.n1_reduced || 0);
+                    if (bucket.year === currentYear - 2) reduced = (pendingLeave.n2_reduced || 0);
+                    if (reduced > 0) {
+                      estRemaining -= reduced;
+                      isEstimated = true;
+                    }
                   }
                   return (
                     <div key={bucket.year} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
@@ -242,16 +295,24 @@ export default async function DashboardPage() {
                             <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 text-[9px]">2 Tahun Lalu</span>
                           ) : null}
                         </span>
-                        {pendingLeave && (
-                          <span className="text-[9px] text-amber-600 font-semibold mt-0.5">Sisa Estimasi: {estRemaining} hari</span>
-                        )}
                         {bucket.expires_at && (
-                          <span className="text-[10px] text-muted-foreground">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">Kedaluwarsa {format(new Date(bucket.expires_at), 'd MMM yyyy', { locale: id })}</span>
                         )}
                       </div>
                       <div className="text-right">
-                        <span className="font-bold text-slate-900">{bucket.remaining}</span>
-                        <span className="text-slate-400"> / {bucket.total} d</span>
+                        {isEstimated ? (
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <span className="font-medium text-slate-500">{bucket.remaining}</span>
+                            <FaArrowRight className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                            <span className="font-bold text-orange-500">{estRemaining}</span>
+                            <span className="text-slate-400">/ {bucket.total}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-bold text-slate-900">{bucket.remaining}</span>
+                            <span className="text-slate-400"> / {bucket.total}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   );

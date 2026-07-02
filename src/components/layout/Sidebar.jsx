@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, CheckSquare, Inbox, Users, LogOut, Menu, X, FileSignature, FolderArchive, HelpCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 function NavLink({ href, icon: Icon, children, exact = false, onClick }) {
   const pathname = usePathname()
@@ -32,6 +33,67 @@ export function Sidebar({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  
+  const [myActionCount, setMyActionCount] = useState(pendingMyActionCount)
+  const [othersActionCount, setOthersActionCount] = useState(pendingOthersActionCount)
+
+  // Sync state if server props change (fallback / navigation hydrate)
+  useEffect(() => {
+    setMyActionCount(pendingMyActionCount)
+    setOthersActionCount(pendingOthersActionCount)
+  }, [pendingMyActionCount, pendingOthersActionCount])
+
+  // Realtime Supabase Socket Listener
+  useEffect(() => {
+    if (!employee || (role !== 'admin' && role !== 'manager')) return
+
+    const supabase = createClient()
+
+    const fetchCounts = async () => {
+      const { data: pendingRequests } = await supabase
+        .from('cuti')
+        .select('atasan_id, pejabat_id, is_atasan_approved, is_pejabat_approved, status')
+        .eq('status', 'pending')
+        .or(`atasan_id.eq.${employee.id},pejabat_id.eq.${employee.id}`)
+
+      let myCount = 0
+      let othersCount = 0
+
+      if (pendingRequests) {
+        for (const req of pendingRequests) {
+          const isAtasan = req.atasan_id === employee.id
+          const isPejabat = req.pejabat_id === employee.id
+
+          const needAtasanSign = isAtasan && !req.is_atasan_approved
+          const needPejabatSign = isPejabat && !req.is_pejabat_approved
+
+          if (needAtasanSign || needPejabatSign) {
+            myCount++
+          } else {
+            othersCount++
+          }
+        }
+      }
+
+      setMyActionCount(myCount)
+      setOthersActionCount(othersCount)
+    }
+
+    const channel = supabase
+      .channel('cuti-realtime-badge')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cuti' },
+        () => {
+          fetchCounts()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [employee, role])
 
   const isHelpActive = pathname === '/help'
 
@@ -43,7 +105,7 @@ export function Sidebar({
         className="lg:hidden absolute top-4 left-4 z-30 p-1.5 bg-white rounded-xl shadow-sm text-slate-800 border border-slate-100"
       >
         <Menu className="w-5 h-5" />
-        {(pendingMyActionCount > 0 || pendingOthersActionCount > 0) && (
+        {(myActionCount > 0 || othersActionCount > 0) && (
           <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500" />
         )}
       </button>
@@ -104,13 +166,13 @@ export function Sidebar({
                 </NavLink>
                 <NavLink href="/admin/requests" icon={Inbox} onClick={() => setIsOpen(false)}>
                   <span className="flex-1">Kotak Masuk Cuti</span>
-                  {pendingMyActionCount > 0 ? (
+                  {myActionCount > 0 ? (
                     <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
-                      {pendingMyActionCount}
+                      {myActionCount}
                     </span>
-                  ) : pendingOthersActionCount > 0 ? (
+                  ) : othersActionCount > 0 ? (
                     <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                      {pendingOthersActionCount}
+                      {othersActionCount}
                     </span>
                   ) : null}
                 </NavLink>

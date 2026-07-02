@@ -102,10 +102,10 @@ export function Navbar() {
             ) : user ? (
               <Button
                 variant="secondary"
-                className="group relative bg-white text-primary hover:bg-white/90 rounded-full h-11 px-6 font-medium shadow-sm overflow-hidden"
+                className="group relative bg-white text-primary hover:bg-white/90 rounded-full h-11 px-6 font-medium shadow-sm overflow-hidden max-w-[200px] sm:max-w-[260px] flex-shrink"
                 onClick={handleLogout}
               >
-                <span className="block transition-transform duration-300 group-hover:-translate-y-12">
+                <span className="block transition-transform duration-300 group-hover:-translate-y-12 truncate max-w-[120px] sm:max-w-[180px]">
                   {employeeName || user.email || 'Akun'}
                 </span>
                 <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 translate-y-12 group-hover:translate-y-0 text-red-600 font-bold">
