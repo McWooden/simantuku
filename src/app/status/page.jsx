@@ -330,39 +330,133 @@ export default async function ServerStatusPage() {
               </div>
 
               {/* Trend Chart (7 days) */}
-              {analyticsData.dailyTrend && analyticsData.dailyTrend.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tren Harian (7 Hari Terakhir)</h3>
-                  <div className="flex items-end justify-between gap-1 sm:gap-2 h-32 pt-6 px-2">
-                    {analyticsData.dailyTrend.map((day, idx) => {
-                      // Calculate height relative to max views in the trend
-                      const maxViews = Math.max(...analyticsData.dailyTrend.map(d => d.pageViews), 1);
-                      const heightPercent = Math.max(10, Math.min(100, Math.round((day.pageViews / maxViews) * 100)));
+              {analyticsData && (() => {
+                // Pad data for the last 7 days so it always shows a full 7-day timeline starting from 6 days ago up to today
+                const dailyTrend = [];
+                for (let i = 6; i >= 0; i--) {
+                  const date = subDays(new Date(), i);
+                  const dateLabel = format(date, 'dd/MM');
+                  
+                  const matchingRow = analyticsData.dailyTrend?.find(
+                    t => t.dateLabel === dateLabel || t.dateLabel === format(date, 'd/M') || t.dateLabel === format(date, 'dd/M')
+                  );
+                  
+                  dailyTrend.push({
+                    dateLabel,
+                    pageViews: matchingRow ? matchingRow.pageViews : 0,
+                    activeUsers: matchingRow ? matchingRow.activeUsers : 0
+                  });
+                }
 
-                      return (
-                        <div key={idx} className="flex-1 flex flex-col items-center group relative cursor-help">
-                          {/* Mini Tooltip */}
-                          <div className="absolute bottom-full mb-2 w-max bg-slate-900 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-20">
-                            {day.pageViews} Tayangan | {day.activeUsers} Pengunjung
-                            <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 absolute top-full left-1/2 -translate-x-1/2 -translate-y-0.5"></div>
-                          </div>
-                          
-                          {/* Bar */}
-                          <div 
-                            style={{ height: `${heightPercent}%` }}
-                            className="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t-md transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.2)]"
-                          />
-                          
-                          {/* Date Label */}
-                          <span className="text-[10px] text-slate-400 font-bold mt-2 truncate w-full text-center">
-                            {day.dateLabel}
-                          </span>
+                const maxVal = Math.max(
+                  ...dailyTrend.map(d => Math.max(d.pageViews, d.activeUsers)), 
+                  1
+                );
+                
+                // SVG dimensions & padding: Y-axis labels take left 35px
+                const chartLeft = 35;
+                const chartRight = 480;
+                const chartWidth = chartRight - chartLeft;
+                const pointsCount = dailyTrend.length;
+                
+                const pageViewsPoints = dailyTrend.map((d, i) => {
+                  const x = chartLeft + (i * chartWidth) / (pointsCount - 1);
+                  const y = 80 - (d.pageViews / maxVal) * 60;
+                  return { x, y, val: d.pageViews, date: d.dateLabel };
+                });
+
+                const activeUsersPoints = dailyTrend.map((d, i) => {
+                  const x = chartLeft + (i * chartWidth) / (pointsCount - 1);
+                  const y = 80 - (d.activeUsers / maxVal) * 60;
+                  return { x, y, val: d.activeUsers, date: d.dateLabel };
+                });
+
+                const pageViewsPath = pageViewsPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                const activeUsersPath = activeUsersPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+                const pageViewsAreaPath = `${pageViewsPath} L ${pageViewsPoints[pointsCount - 1].x} 80 L ${pageViewsPoints[0].x} 80 Z`;
+                const activeUsersAreaPath = `${activeUsersPath} L ${activeUsersPoints[pointsCount - 1].x} 80 L ${activeUsersPoints[0].x} 80 Z`;
+
+                const topLabel = Math.round(maxVal);
+                const midLabel = Math.round(maxVal / 2);
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-t border-slate-105 pt-4 flex-wrap gap-2">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tren Harian (7 Hari Terakhir)</h3>
+                      <div className="flex gap-4 text-xs font-bold">
+                        <div className="flex items-center gap-1.5 text-indigo-650">
+                          <span className="w-3 h-0.5 bg-indigo-500 rounded block" />
+                          <span>Tayangan Halaman</span>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center gap-1.5 text-emerald-650">
+                          <span className="w-3 h-0.5 bg-emerald-500 rounded block" />
+                          <span>Pengunjung Aktif</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative w-full overflow-hidden bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                      {/* Responsive SVG Container */}
+                      <svg viewBox="0 0 500 100" className="w-full h-36 overflow-visible">
+                        <defs>
+                          <linearGradient id="pageViewsGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.12" />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                          </linearGradient>
+                          <linearGradient id="activeUsersGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Grid Lines */}
+                        <line x1={chartLeft} y1="20" x2={chartRight} y2="20" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                        <line x1={chartLeft} y1="50" x2={chartRight} y2="50" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                        <line x1={chartLeft} y1="80" x2={chartRight} y2="80" stroke="#e2e8f0" strokeWidth="1" />
+
+                        {/* Y-Axis Vertical Line */}
+                        <line x1={chartLeft} y1="20" x2={chartLeft} y2="80" stroke="#e2e8f0" strokeWidth="1" />
+
+                        {/* Y-Axis Ruler Labels */}
+                        <text x={chartLeft - 8} y="23" textAnchor="end" className="text-[8px] font-bold fill-slate-400 font-sans">{topLabel}</text>
+                        <text x={chartLeft - 8} y="53" textAnchor="end" className="text-[8px] font-bold fill-slate-400 font-sans">{midLabel}</text>
+                        <text x={chartLeft - 8} y="83" textAnchor="end" className="text-[8px] font-bold fill-slate-400 font-sans">0</text>
+
+                        {/* Area Gradients */}
+                        <path d={pageViewsAreaPath} fill="url(#pageViewsGrad)" />
+                        <path d={activeUsersAreaPath} fill="url(#activeUsersGrad)" />
+
+                        {/* Line Paths */}
+                        <path d={pageViewsPath} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={activeUsersPath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+                        {/* Circles / Interactive Nodes */}
+                        {pageViewsPoints.map((p, i) => (
+                          <g key={`pv-${i}`} className="group/node cursor-help">
+                            <circle cx={p.x} cy={p.y} r="3" fill="#ffffff" stroke="#6366f1" strokeWidth="1.5" />
+                            <title>{`${p.date}: ${p.val} Tayangan`}</title>
+                          </g>
+                        ))}
+
+                        {activeUsersPoints.map((p, i) => (
+                          <g key={`au-${i}`} className="group/node cursor-help">
+                            <circle cx={p.x} cy={p.y} r="3" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
+                            <title>{`${p.date}: ${p.val} Pengunjung`}</title>
+                          </g>
+                        ))}
+
+                        {/* Date Labels below chart */}
+                        {pageViewsPoints.map((p, i) => (
+                          <text key={`lbl-${i}`} x={p.x} y="92" textAnchor="middle" className="text-[8px] font-bold fill-slate-400 font-sans">
+                            {p.date}
+                          </text>
+                        ))}
+                      </svg>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </div>
