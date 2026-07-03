@@ -11,6 +11,7 @@ import { CalendarDays, PlusCircle, CheckCircle2, Clock, AlertCircle } from 'luci
 import { CancelLeaveButton } from './CancelLeaveButton'
 import { DownloadPdfButton } from '@/components/ui/DownloadPdfButton'
 import { NipPasswordToggle } from '@/components/ui/NipPasswordToggle'
+import { PushNotificationToggle } from '@/components/ui/PushNotificationToggle'
 import { FaArrowRight } from 'react-icons/fa6'
 
 function parseDateString(dateStr) {
@@ -418,9 +419,12 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* Account Security Settings */}
-            <div className="pt-6 border-t border-slate-100">
+            {/* Account Settings */}
+            <div className="pt-6 border-t border-slate-100 flex flex-col gap-4">
               <NipPasswordToggle employee={employee} />
+              <div className="border-t border-slate-50 pt-4">
+                <PushNotificationToggle />
+              </div>
             </div>
           </CardContent>
         </Card>

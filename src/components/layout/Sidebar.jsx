@@ -95,6 +95,17 @@ export function Sidebar({
     }
   }, [employee, role])
 
+  // Initialize OneSignal Push Notifications Client-side
+  useEffect(() => {
+    if (employee && employee.id) {
+      import('@/lib/pushNotification').then(({ initOneSignal }) => {
+        initOneSignal(employee.id)
+      }).catch(err => {
+        console.error("Failed to load push notifications initializer:", err)
+      })
+    }
+  }, [employee])
+
   const isHelpActive = pathname === '/help'
 
   return (

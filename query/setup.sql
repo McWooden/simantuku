@@ -335,3 +335,10 @@ EXECUTE FUNCTION public.heal_cuti_chain_after_delete();
 -- Enable Supabase Realtime for cuti table updates
 -- ALTER PUBLICATION supabase_realtime ADD TABLE cuti;
 
+-- Schedule Leave Reminders cron job every hour in Supabase:
+-- SELECT cron.schedule(
+--   'leave-reminders-job',
+--   '0 * * * *',
+--   $$SELECT net.http_get('https://kmusicerdas.vercel.app/api/cron/reminders');$$
+-- );
+

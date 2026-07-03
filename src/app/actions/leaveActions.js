@@ -3,13 +3,47 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+export async function sendPushNotification(targetEmployeeId, message) {
+  const appId = "453e6b01-0e27-487c-8d3e-06bbda224c7f";
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+
+  if (!apiKey) {
+    console.warn("ONESIGNAL_REST_API_KEY is not set. Bypassing push notification.");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": `Basic ${apiKey}`
+      },
+      body: JSON.stringify({
+        app_id: appId,
+        contents: { en: message },
+        include_aliases: {
+          external_id: [targetEmployeeId]
+        },
+        target_channel: "push"
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("OneSignal notification failed:", data);
+    }
+  } catch (err) {
+    console.error("Failed to send OneSignal notification:", err);
+  }
+}
+
 export async function submitLeaveAction(payload) {
   const { category, dates, note, address, recipientType, atasanId, pejabatId, attachmentUrl, onBehalfEmployeeId, status: clientStatus, requestDate } = payload;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
 
-  const { data: employee } = await supabase.from('employees').select('id, role').eq('auth_id', user.id).single()
+  const { data: employee } = await supabase.from('employees').select('id, role, name').eq('auth_id', user.id).single()
   if (!employee) return { error: "No employee mapped" }
 
   const isAdmin = employee.role === 'admin' || employee.role === 'manager';
@@ -162,6 +196,17 @@ export async function submitLeaveAction(payload) {
       await supabase.from('cuti').delete().eq('id', insertedCuti.id)
       return { error: rpcErr.message }
     }
+  } else {
+    // Notify the chosen Atasan directly
+    if (atasanId) {
+      try {
+        const { data: reqEmp } = await supabase.from('employees').select('name').eq('id', targetEmployeeId).single();
+        const requesterName = reqEmp?.name || "Pegawai";
+        await sendPushNotification(atasanId, `Ada permohonan cuti baru dari ${requesterName} yang memerlukan persetujuan Anda.`);
+      } catch (err) {
+        console.error("Failed to trigger push notification on submission:", err);
+      }
+    }
   }
 
   revalidatePath('/dashboard')
@@ -181,7 +226,7 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('id, role')
+    .select('id, role, name')
     .eq('auth_id', user.id)
     .single()
 
@@ -201,6 +246,13 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
     // Call the Supabase RPC stored procedure to approve the leave request atomically with pessimistic locking
     const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
     if (rpcErr) return { error: rpcErr.message }
+
+    // Send push notification to requester
+    try {
+      await sendPushNotification(request.employee_id, `Selamat! Permohonan cuti Anda telah disetujui sepenuhnya oleh Pejabat. Dokumen PDF cuti Anda sudah dapat diunduh di dashboard.`);
+    } catch (err) {
+      console.error("Failed to notify user on push approved:", err)
+    }
   } else {
     const updates = { status: newStatus }
     if (newStatus === 'ditolak') {
@@ -209,6 +261,15 @@ export async function updateLeaveStatusAction(requestId, newStatus) {
     }
     const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
     if (error) return { error: error.message }
+
+    if (newStatus === 'ditolak') {
+      // Send push notification to requester
+      try {
+        await sendPushNotification(request.employee_id, `Permohonan cuti Anda ditolak oleh ${employee.name || 'Atasan/Pejabat'}.`);
+      } catch (err) {
+        console.error("Failed to notify user on push rejected:", err)
+      }
+    }
   }
 
   revalidatePath('/admin/requests')
@@ -229,7 +290,7 @@ export async function signLeaveAction(requestId, roleType) {
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('id, role')
+    .select('id, role, name')
     .eq('auth_id', user.id)
     .single()
 
@@ -245,6 +306,13 @@ export async function signLeaveAction(requestId, roleType) {
     // Call the Supabase RPC stored procedure to approve the leave request atomically
     const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
     if (rpcErr) return { error: rpcErr.message }
+
+    // Fully approved: notify requester employee
+    try {
+      await sendPushNotification(request.employee_id, `Selamat! Permohonan cuti Anda telah disetujui sepenuhnya oleh Pejabat. Dokumen PDF cuti Anda sudah dapat diunduh di dashboard.`);
+    } catch (err) {
+      console.error("Failed to notify user on push fully approved (all):", err)
+    }
   } else {
     if (roleType === 'atasan') {
       if (request.atasan_id !== employee.id && !isManager) {
@@ -271,10 +339,28 @@ export async function signLeaveAction(requestId, roleType) {
 
       const { error: rpcErr } = await supabase.rpc('approve_leave_request', { p_leave_id: requestId })
       if (rpcErr) return { error: rpcErr.message }
+
+      // Fully approved: notify requester employee
+      try {
+        await sendPushNotification(request.employee_id, `Selamat! Permohonan cuti Anda telah disetujui sepenuhnya oleh Pejabat. Dokumen PDF cuti Anda sudah dapat diunduh di dashboard.`);
+      } catch (err) {
+        console.error("Failed to notify user on push fully approved (partial):", err)
+      }
     } else {
       // Just update intermediate signature fields
       const { error } = await supabase.from('cuti').update(updates).eq('id', requestId)
       if (error) return { error: error.message }
+
+      // If signed by Atasan, notify the Pejabat who needs to sign next
+      if (roleType === 'atasan' && request.pejabat_id) {
+        try {
+          const { data: reqEmp } = await supabase.from('employees').select('name').eq('id', request.employee_id).single();
+          const requesterName = reqEmp?.name || "Pegawai";
+          await sendPushNotification(request.pejabat_id, `Permohonan cuti ${requesterName} telah disetujui oleh Atasan Langsung dan sekarang menunggu tanda tangan final Anda.`);
+        } catch (err) {
+          console.error("Failed to notify pejabat on intermediate sign:", err)
+        }
+      }
     }
   }
 
@@ -538,7 +624,7 @@ export async function deleteLeaveAction(requestId) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authorized" }
 
-  const { data: employee } = await supabase.from('employees').select('id').eq('auth_id', user.id).single()
+  const { data: employee } = await supabase.from('employees').select('id, name').eq('auth_id', user.id).single()
   if (!employee) return { error: "Unauthorized" }
 
   const { data: request, error: fetchErr } = await supabase
@@ -551,6 +637,16 @@ export async function deleteLeaveAction(requestId) {
   
   if (request.employee_id !== employee.id) return { error: "Unauthorized" }
   if (request.status !== 'pending') return { error: "Only pending requests can be deleted" }
+
+  // Send push notification to the current pending signatory
+  const targetSignatoryId = request.is_atasan_approved ? request.pejabat_id : request.atasan_id;
+  if (targetSignatoryId) {
+    try {
+      await sendPushNotification(targetSignatoryId, `${employee.name} telah membatalkan pengajuan cuti yang sebelumnya dikirimkan.`);
+    } catch (err) {
+      console.error("Failed to notify signatory of canceled request:", err)
+    }
+  }
 
   const { error } = await supabase.from('cuti').delete().eq('id', requestId)
   if (error) return { error: error.message }
