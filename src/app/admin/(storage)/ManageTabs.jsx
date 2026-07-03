@@ -8,11 +8,11 @@ export function ManageTabs() {
   const pathname = usePathname()
   
   const tabs = [
-    { name: 'Lampiran Cuti', href: '/admin/manage/attachments', icon: FolderArchive },
-    { name: 'Daftar Tanda Tangan', href: '/admin/manage/signatures', icon: FileSignature },
-    { name: 'Unggah Tanda Tangan', href: '/admin/manage/signatures/upload', icon: UploadCloud },
-    { name: 'Stempel Unit', href: '/admin/manage/stamps', icon: FolderArchive }, // using FolderArchive or another icon
-    { name: 'Pembersihan Data', href: '/admin/manage/cleanup', icon: Trash2 }
+    { name: 'Lampiran Cuti', href: '/admin/attachments', icon: FolderArchive },
+    { name: 'Daftar Tanda Tangan', href: '/admin/signatures', icon: FileSignature },
+    { name: 'Unggah Tanda Tangan', href: '/admin/signatures/upload', icon: UploadCloud },
+    { name: 'Stempel Unit', href: '/admin/stamps', icon: FolderArchive }, // using FolderArchive or another icon
+    { name: 'Pembersihan Data', href: '/admin/cleanup', icon: Trash2 }
   ]
 
   return (

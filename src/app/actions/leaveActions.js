@@ -210,7 +210,7 @@ export async function submitLeaveAction(payload) {
   }
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/form')
+  revalidatePath('/form')
   revalidatePath('/admin/requests')
   return { success: true, id: insertedCuti.id }
 }
@@ -680,7 +680,7 @@ export async function adminDeleteLeaveAction(requestId) {
   if (error) return { error: error.message }
 
   revalidatePath('/admin/requests')
-  revalidatePath('/admin/manage/attachments')
+  revalidatePath('/admin/attachments')
   return { success: true }
 }
 
@@ -724,7 +724,7 @@ export async function bulkDeleteRejectedRequestsAction() {
   if (deleteErr) return { error: deleteErr.message }
 
   revalidatePath('/admin/requests')
-  revalidatePath('/admin/manage/attachments')
+  revalidatePath('/admin/attachments')
   return { success: true, count: rejectedRequests.length }
 }
 

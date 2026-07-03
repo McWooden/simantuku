@@ -162,7 +162,7 @@ export function Sidebar({
               <NavLink href="/dashboard" icon={LayoutDashboard} exact={true} onClick={() => setIsOpen(false)}>
                 Dashboard
               </NavLink>
-              <NavLink href="/dashboard/form" icon={CheckSquare} onClick={() => setIsOpen(false)}>
+              <NavLink href="/form" icon={CheckSquare} onClick={() => setIsOpen(false)}>
                 Ajukan Cuti
               </NavLink>
             </nav>
@@ -187,7 +187,7 @@ export function Sidebar({
                     </span>
                   ) : null}
                 </NavLink>
-                <NavLink href="/admin/manage" icon={FolderArchive} onClick={() => setIsOpen(false)}>
+                <NavLink href="/admin/attachments" icon={FolderArchive} onClick={() => setIsOpen(false)}>
                   Penyimpanan
                 </NavLink>
                 <NavLink href="/admin/employees" icon={Users} onClick={() => setIsOpen(false)}>

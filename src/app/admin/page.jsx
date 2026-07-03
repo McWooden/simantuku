@@ -171,7 +171,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/manage" className="group block focus:outline-none md:col-span-2">
+        <Link href="/admin/attachments" className="group block focus:outline-none md:col-span-2">
           <div className="p-6 rounded-2xl bg-white border border-border/50 hover:border-violet-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden h-full">
             <div className="absolute right-0 top-0 w-32 h-32 bg-violet-50 rounded-bl-full -z-10 transition-transform group-hover:scale-125" />
             <div className="flex items-start gap-4">

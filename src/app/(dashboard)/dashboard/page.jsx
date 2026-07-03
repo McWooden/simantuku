@@ -327,7 +327,7 @@ export default async function DashboardPage() {
 
             <div className="mt-6 pt-4 border-t border-slate-100">
               <Button className="w-full rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.2)] hover:shadow-[0_0_20px_rgba(var(--primary),0.4)] transition-all" asChild>
-                <Link href="/dashboard/form">
+                <Link href="/form">
                   <PlusCircle className="mr-2 h-4 w-4" /> Ajukan Cuti
                 </Link>
               </Button>
@@ -466,7 +466,7 @@ export default async function DashboardPage() {
 
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Link href={`/dashboard/requests/${leave.id}`} className="hover:underline text-slate-800">
+                        <Link href={`/requests/${leave.id}`} className="hover:underline text-slate-800">
                           <h4 className="font-semibold text-base leading-none">{leave.category}</h4>
                         </Link>
                         <span className="text-xs text-slate-400 font-normal leading-none self-center">
@@ -504,7 +504,7 @@ export default async function DashboardPage() {
                           {leave.note && (
                             <div className="flex items-center gap-2 text-xs">
                               <span className="font-bold text-slate-400 font-mono text-[9px] uppercase tracking-wider shrink-0 w-[80px]">Alasan Cuti:</span>
-                              <span className="text-slate-650 font-medium" title={leave.note}>{leave.note}</span>
+                              <span className="text-slate-655 font-medium" title={leave.note}>{leave.note}</span>
                             </div>
                           )}
                           
@@ -535,7 +535,7 @@ export default async function DashboardPage() {
                       {/* Progress Bar Track */}
                       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
+                           className={`h-full rounded-full transition-all duration-500 ${
                             isRejected ? 'bg-red-500 w-full' :
                             isAcc ? 'bg-emerald-500 w-full' :
                             ((leave.is_atasan_approved ? 1 : 0) + (leave.is_pejabat_approved ? 1 : 0)) === 1 ? 'bg-amber-400 w-2/3' : 'bg-primary/60 w-1/3'
@@ -604,7 +604,7 @@ export default async function DashboardPage() {
                           quotas: {
                             sisaN: leave.status === 'acc'
                               ? (leave.n_balance !== null ? leave.n_balance : 0) + (leave.n_reduced || 0)
-                              : (buckets.find(b => b.year === currentYear)?.remaining || 0),
+                               : (buckets.find(b => b.year === currentYear)?.remaining || 0),
                             sisaN1: leave.status === 'acc'
                               ? (leave.n1_balance !== null ? leave.n1_balance : 0) + (leave.n1_reduced || 0)
                               : (buckets.find(b => b.year === currentYear - 1)?.remaining || 0),
@@ -636,7 +636,7 @@ export default async function DashboardPage() {
                   Anda belum mengajukan permintaan cuti apa pun. Riwayat Anda akan muncul di sini nanti.
                 </p>
                 <Button variant="outline" asChild>
-                  <Link href="/dashboard/form">Ajukan permintaan pertama Anda</Link>
+                  <Link href="/form">Ajukan permintaan pertama Anda</Link>
                 </Button>
               </CardContent>
             </Card>

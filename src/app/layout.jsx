@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { FloatingChat } from "@/components/ui/FloatingChat";
+import Script from "next/script";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -44,6 +45,22 @@ export default function RootLayout({ children }) {
           speed={200}
           shadow="0 0 10px var(--primary), 0 0 5px var(--primary)"
         />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
         {children}
         <FloatingChat />
       </body>

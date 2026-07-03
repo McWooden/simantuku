@@ -13,6 +13,18 @@ import {
   Users
 } from "lucide-react";
 
+export const metadata = {
+  title: "Sicerdas - Manajemen Cuti Organisasi Cerdas & Otomatis",
+  description: "Sistem manajemen cuti modern dan otomatis untuk instansi Anda. Ajukan cuti secara praktis, pantau persetujuan real-time, dan optimalkan administrasi kepegawaian.",
+  keywords: ["manajemen cuti", "pengajuan cuti online", "cuti pegawai", "aplikasi cuti", "sicerdas", "kepegawaian"],
+  openGraph: {
+    title: "Sicerdas - Manajemen Cuti Organisasi Cerdas & Otomatis",
+    description: "Sistem manajemen cuti modern dan otomatis untuk instansi Anda. Ajukan cuti secara praktis, pantau persetujuan real-time, dan optimalkan administrasi kepegawaian.",
+    type: "website",
+    locale: "id_ID",
+  },
+};
+
 export default function Home() {
   return (
     <>
@@ -44,7 +56,7 @@ export default function Home() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
                   <Button size="lg" className="rounded-full px-8 h-12 text-base font-semibold group transition-all hover:pr-6" asChild>
-                    <Link href="/dashboard/form">
+                    <Link href="/form">
                       Ajukan Sekarang
                       <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
