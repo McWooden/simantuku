@@ -24,6 +24,9 @@ export const metadata = {
     ],
   },
   manifest: "/favicon-io/site.webmanifest",
+  verification: {
+    google: 'prStfGdEGrY-NSE3zgdu89-4BlrXwrLJ9eWPoDBwqKA'
+  }
 };
 
 // Navbar removed from global layout
@@ -34,7 +37,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${poppins.variable} font-sans antialiased`}
       >
-        <NextTopLoader 
+        <NextTopLoader
           color="var(--primary)"
           initialPosition={0.08}
           crawlSpeed={200}
