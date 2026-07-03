@@ -24,10 +24,10 @@ export async function setPushEnabledState(enabled) {
   
   try {
     if (enabled) {
-      await OneSignal.Notifications.requestPermission();
-      await OneSignal.User.pushSubscription.optIn();
+      await OneSignal.Notifications?.requestPermission();
+      await OneSignal.User?.pushSubscription?.optIn();
     } else {
-      await OneSignal.User.pushSubscription.optOut();
+      await OneSignal.User?.pushSubscription?.optOut();
     }
   } catch (err) {
     console.error("Failed to set push enabled state:", err);
@@ -38,8 +38,8 @@ export async function getPushSubscriptionState() {
   if (typeof window === 'undefined') return false;
   
   try {
-    const isOptedIn = OneSignal.User.pushSubscription.optedIn;
-    const permission = OneSignal.Notifications.permission;
+    const isOptedIn = OneSignal.User?.pushSubscription?.optedIn || false;
+    const permission = OneSignal.Notifications?.permission || false;
     return permission && isOptedIn;
   } catch (err) {
     console.error("Failed to get push state:", err);
