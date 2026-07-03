@@ -43,6 +43,9 @@ export async function updateSession(request) {
     !request.nextUrl.pathname.startsWith('/tutorial') &&
     !request.nextUrl.pathname.startsWith('/favicon-io/') &&
     !request.nextUrl.pathname.startsWith('/templates/') &&
+    !request.nextUrl.pathname.startsWith('/status') &&
+    !request.nextUrl.pathname.startsWith('/sitemap.xml') &&
+    !request.nextUrl.pathname.startsWith('/robots.txt') &&
     request.nextUrl.pathname !== '/'
   ) {
     url.pathname = '/login'
