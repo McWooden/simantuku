@@ -14,6 +14,7 @@ import {
   RefreshCw,
   HardDrive
 } from 'lucide-react'
+import { getGoogleAnalyticsReport } from '@/lib/googleAnalytics'
 
 // Helper function to check if Supabase error points to hibernation/offline
 function isSupabaseOfflineError(error) {
@@ -49,6 +50,8 @@ export default async function ServerStatusPage() {
   let isOffline = false
   let currentStatus = 'operational'
   let logs = []
+
+  const analyticsData = await getGoogleAnalyticsReport()
 
   try {
     const supabase = await createClient()
@@ -290,6 +293,78 @@ export default async function ServerStatusPage() {
               <span>Offline / Hibernasi (Abu-abu)</span>
             </div>
           </div>
+        </div>
+
+        {/* Analytics Section */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900">Statistik Pengunjung (Google Analytics)</h2>
+              <p className="text-xs text-slate-500">Laporan performa traffic situs web 30 hari terakhir.</p>
+            </div>
+            <div className="p-2.5 bg-indigo-50 border border-indigo-100 text-indigo-650 rounded-2xl shadow-xs">
+              <Globe className="w-5 h-5 text-indigo-650" />
+            </div>
+          </div>
+
+          {!analyticsData ? (
+            <div className="p-5 bg-amber-50/50 border border-amber-150 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs flex flex-col gap-2">
+              <span className="font-bold uppercase tracking-wider text-amber-900 block">Hubungkan Google Analytics Data API</span>
+              <p>
+                Untuk menampilkan statistik pengunjung secara langsung, lengkapi pengaturan variabel kredensial layanan 
+                (<code>GA_PROPERTY_ID</code>, <code>GOOGLE_CLIENT_EMAIL</code>, dan <code>GOOGLE_PRIVATE_KEY</code>) pada dashboard server Anda.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Summary Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-5 bg-slate-50 border border-slate-150 rounded-2xl">
+                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider">Pengunjung Aktif (30 Hari)</span>
+                  <span className="text-3xl font-black text-slate-800 block mt-1 tracking-tight">{analyticsData.totalUsers.toLocaleString()}</span>
+                </div>
+                <div className="p-5 bg-slate-50 border border-slate-150 rounded-2xl">
+                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider">Total Tayangan Halaman</span>
+                  <span className="text-3xl font-black text-slate-800 block mt-1 tracking-tight">{analyticsData.totalPageViews.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Trend Chart (7 days) */}
+              {analyticsData.dailyTrend && analyticsData.dailyTrend.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tren Harian (7 Hari Terakhir)</h3>
+                  <div className="flex items-end justify-between gap-1 sm:gap-2 h-32 pt-6 px-2">
+                    {analyticsData.dailyTrend.map((day, idx) => {
+                      // Calculate height relative to max views in the trend
+                      const maxViews = Math.max(...analyticsData.dailyTrend.map(d => d.pageViews), 1);
+                      const heightPercent = Math.max(10, Math.min(100, Math.round((day.pageViews / maxViews) * 100)));
+
+                      return (
+                        <div key={idx} className="flex-1 flex flex-col items-center group relative cursor-help">
+                          {/* Mini Tooltip */}
+                          <div className="absolute bottom-full mb-2 w-max bg-slate-900 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-20">
+                            {day.pageViews} Tayangan | {day.activeUsers} Pengunjung
+                            <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 absolute top-full left-1/2 -translate-x-1/2 -translate-y-0.5"></div>
+                          </div>
+                          
+                          {/* Bar */}
+                          <div 
+                            style={{ height: `${heightPercent}%` }}
+                            className="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t-md transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.2)]"
+                          />
+                          
+                          {/* Date Label */}
+                          <span className="text-[10px] text-slate-400 font-bold mt-2 truncate w-full text-center">
+                            {day.dateLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Detailed Service Status */}
