@@ -25,7 +25,7 @@ export const metadata = {
   },
   manifest: "/favicon-io/site.webmanifest",
   verification: {
-    google: 'prStfGdEGrY-NSE3zgdu89-4BlrXwrLJ9eWPoDBwqKA'
+    google: '0tSVo-1z0o7XN5DhZ6f7OmXUFKUTgwCB1-QuNaNrvJg'
   }
 };
 
