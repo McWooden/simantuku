@@ -12,7 +12,8 @@ import {
   Globe, 
   ShieldCheck, 
   RefreshCw,
-  HardDrive
+  HardDrive,
+  HelpCircle
 } from 'lucide-react'
 import { getGoogleAnalyticsReport } from '@/lib/googleAnalytics'
 
@@ -506,6 +507,37 @@ export default async function ServerStatusPage() {
             </p>
           </div>
         )}
+
+        {/* Contact/Help Card */}
+        <Link 
+          href="/help" 
+          className="block bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-white shadow-xl hover:shadow-2xl transition-all duration-305 transform hover:-translate-y-1 group relative overflow-hidden"
+        >
+          {/* Subtle Background Art */}
+          <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors pointer-events-none" />
+          
+          <div className="flex items-center justify-between gap-4 relative z-10">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-white/10 border border-white/20 text-indigo-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                <HelpCircle className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white group-hover:text-indigo-200 transition-colors">
+                  Ada kendala? Hubungi tim teknis kami
+                </h3>
+                <p className="text-xs text-indigo-200/80 leading-relaxed max-w-lg">
+                  Mengalami masalah koneksi, bug, atau ada pertanyaan seputar pengajuan cuti? Kunjungi halaman Pusat Bantuan kami sekarang.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0 text-white/40 group-hover:text-white transition-colors pl-2">
+              <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </Link>
 
       </div>
     </div>
