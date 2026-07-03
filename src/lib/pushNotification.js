@@ -15,7 +15,12 @@ export async function initOneSignal(employeeId) {
       await OneSignal.login(employeeId);
     }
   } catch (err) {
-    console.error("OneSignal initialization failed:", err);
+    const errorMsg = String(err);
+    if (errorMsg.includes("failed to load") || errorMsg.includes("script")) {
+      console.warn("OneSignal push notifications script blocked by client (e.g. adblocker or network filter).");
+    } else {
+      console.error("OneSignal initialization failed:", err);
+    }
   }
 }
 
