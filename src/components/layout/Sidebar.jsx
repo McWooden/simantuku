@@ -172,9 +172,7 @@ export function Sidebar({
             <div className="mb-6">
               <p className="px-4 text-[10px] font-bold text-slate-400 mb-3 tracking-widest">ADMINISTRASI</p>
               <nav className="space-y-1.5">
-                <NavLink href="/admin" icon={LayoutDashboard} exact={true} onClick={() => setIsOpen(false)}>
-                  Pusat Admin
-                </NavLink>
+
                 <NavLink href="/admin/requests" icon={Inbox} onClick={() => setIsOpen(false)}>
                   <span className="flex-1">Kotak Masuk Cuti</span>
                   {myActionCount > 0 ? (
