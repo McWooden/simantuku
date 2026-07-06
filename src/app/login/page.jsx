@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { nipLoginAction } from '@/app/actions/authActions'
 import Link from 'next/link'
 import Image from 'next/image'
-import { CalendarDays, ArrowRight, ArrowLeft, RefreshCw, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react'
+import { CalendarDays, ArrowRight, ArrowLeft, RefreshCw, KeyRound, ShieldAlert, Eye, EyeOff, BadgeCheck } from 'lucide-react'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -211,7 +211,6 @@ export default function LoginPage() {
           Kembali
         </Link>
       </div>
-
       {/* Left side (Login Form Card) */}
       <div className="w-full lg:w-[45%] flex flex-col justify-center items-center p-4 sm:p-6 bg-white/80 backdrop-blur-md lg:bg-white relative z-10">
         {/* Login Card */}
@@ -382,7 +381,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right side (Image Panel) */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-slate-900 select-none group">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-slate-900 select-none group items-end justify-start p-10">
         <Image
           src="/images/login-bg.webp"
           alt="Tropical Vacation Background"
@@ -391,6 +390,30 @@ export default function LoginPage() {
           sizes="55vw"
           className="object-cover object-center transition-all duration-1000 ease-out scale-102 blur-[2px] group-hover:blur-none group-hover:scale-100"
         />
+        {/* Ownership Card */}
+        <div className="relative z-10 bg-white/95 backdrop-blur-md p-7 rounded-2xl shadow-2xl max-w-md border border-slate-100 text-left transition-all duration-300 hover:bg-white flex gap-5 items-center">
+          <div className="flex-shrink-0 bg-primary/10 p-3 rounded-2xl border border-primary/20">
+            <Image
+              src="/favicon-io/apple-touch-icon.png"
+              alt="App Icon"
+              width={56}
+              height={56}
+              className="rounded-xl"
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <h3 className="text-lg font-bold text-slate-900">KMU SiCerdas</h3>
+              <svg className="w-4.5 h-4.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L19.07 4.93L22 12L19.07 19.07L12 22L4.93 19.07L2 12L4.93 4.93L12 2Z" fill="#3b82f6" />
+                <path d="M9.5 15.2L6.3 12L5 13.3L9.5 17.8L19 8.3L17.7 7L9.5 15.2Z" fill="white" />
+              </svg>
+            </div>
+            <p className="text-xs text-slate-650 leading-relaxed">
+              Sistem manajemen cuti terintegrasi. Aplikasi ini dikembangkan dan dimiliki secara resmi oleh <strong>sicerdas</strong>.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
