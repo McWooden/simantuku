@@ -410,7 +410,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <p className="text-xs text-slate-650 leading-relaxed">
-              Sistem manajemen cuti terintegrasi. Aplikasi ini dikembangkan dan dimiliki secara resmi oleh <strong>sicerdas</strong>.
+              Sistem manajemen cuti terintegrasi. Aplikasi ini dikembangkan dan dimiliki secara resmi oleh <strong>Utari, S.Sos.</strong>
             </p>
           </div>
         </div>
