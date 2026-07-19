@@ -91,7 +91,7 @@ export default function Home() {
         </section>
 
         {/* Client Logos / "Who Uses This App" Section with Infinite Marquee */}
-        <section className="py-10 border-y border-border/80 bg-muted/10 overflow-hidden">
+        <section className="hidden md:block py-10 border-y border-border/80 bg-muted/10 overflow-hidden">
           <div className="container mx-auto max-w-5xl px-4">
             <p className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground mb-8">
               Telah Digunakan & Dipercayai Oleh
@@ -120,7 +120,7 @@ export default function Home() {
                 className="md:col-span-2 bg-primary text-primary-foreground relative overflow-hidden group"
                 icon={<FileText className="w-6 h-6" />}
                 title="Pusat Cetak PDF Otomatis"
-                description="Lupakan pengisian formulir manual yang memakan waktu. Sicerdas memetakan seluruh data Anda ke dalam template cuti resmi secara otomatis. Cukup unduh, cetak, dan ajukan langsung ke atasan Anda."
+                description="Sistem memetakan seluruh data Anda ke dalam template PDF formulir cuti resmi secara otomatis untuk diunduh secara instan."
                 isWide={true}
                 visual={
                   <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 text-white/90 text-xs shadow-inner transition-all duration-300 group-hover:bg-white/15">
@@ -132,8 +132,9 @@ export default function Home() {
                       <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded text-white font-mono">132 KB</span>
                     </div>
                     <div className="space-y-2 font-mono text-[10px] opacity-80 text-white/90">
-                      <p>NAMA: NUR UTARI</p>
-                      <p>NIP: 19920815••••••••••</p>
+                      <p>KATEGORI: Cuti Tahunan</p>
+                      <p>DURASI: 3 Hari Kerja</p>
+                      <p>TANGGAL: 20 - 22 Jul 2026</p>
                       <p>ALASAN: Cuti Tahunan Wilayah Magelang</p>
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
@@ -154,7 +155,7 @@ export default function Home() {
                 className="md:row-span-2 bg-card border-border/80 relative overflow-hidden group"
                 icon={<CalendarCheck2 className="w-6 h-6" />}
                 title="Manajemen Kuota Cerdas"
-                description="Sistem mutakhir yang mendukung perhitungan kuota berjalan bertingkat. Kuota dari tahun terlama akan otomatis diprioritaskan saat pengajuan, memastikan hak cuti pegawai terkelola dengan presisi tinggi dan tidak hangus sia-sia."
+                description="Perhitungan kuota cuti tahunan bertingkat (N, N-1, N-2) dengan prioritas penggunaan otomatis agar saldo cuti Anda tidak hangus."
                 visual={
                   <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-border/60 p-4 space-y-4 transition-all duration-300 group-hover:border-primary/20">
                     {/* Multi-segment Progress Bar */}
@@ -180,18 +181,27 @@ export default function Home() {
                       <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="font-semibold">Tahun 2026</span>
+                          <span className="font-semibold text-slate-750 dark:text-slate-300">Tahun 2026</span>
                           <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Tahun Ini</span>
                         </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">12 Hari</span>
+                        <span className="font-bold text-slate-850 dark:text-slate-150">12 Hari</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                          <span className="font-semibold">Tahun 2025</span>
+                          <span className="font-semibold text-slate-750 dark:text-slate-300">Tahun 2025</span>
                           <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-medium">Tahun Lalu</span>
                         </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">6 Hari <span className="text-[9px] text-primary">(Prioritas)</span></span>
+                        <span className="font-bold text-slate-850 dark:text-slate-150">6 Hari <span className="text-[9px] text-primary">(Prioritas)</span></span>
+                      </div>
+                      
+                      {/* Extra Category info */}
+                      <div className="flex justify-between items-center text-xs border-t border-border/60 pt-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                          <span className="font-semibold text-slate-750 dark:text-slate-300">Cuti Sakit</span>
+                        </div>
+                        <span className="font-bold text-slate-850 dark:text-slate-150">14 Hari Tersedia</span>
                       </div>
                     </div>
                   </div>
@@ -203,11 +213,11 @@ export default function Home() {
                 className="bg-card border-border/80 relative overflow-hidden group"
                 icon={<LayoutDashboard className="w-6 h-6" />}
                 title="Dashboard Intuitif"
-                description="Pantau sisa cuti Anda secara real-time, lacak status persetujuan, dan lihat riwayat dokumen cuti Anda dalam satu layar nyaman."
+                description="Pantau saldo cuti tahunan, lacak persetujuan atasan, dan lihat histori pengajuan secara real-time."
                 visual={
                   <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-border/60 p-4 space-y-3 transition-all duration-300 group-hover:border-primary/20">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Permohonan Cuti Terbaru</div>
-
+                    
                     <div className="flex items-center justify-between p-2 bg-background rounded-xl border border-border/50 text-xs hover:border-primary/20 transition-all duration-200">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">Cuti Tahunan</span>
@@ -227,6 +237,16 @@ export default function Home() {
                         Menunggu
                       </span>
                     </div>
+
+                    <div className="flex items-center justify-between p-2 bg-background rounded-xl border border-border/50 text-xs hover:border-primary/20 transition-all duration-200">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">Cuti Sakit</span>
+                        <span className="text-[9px] text-muted-foreground">12 Jun 2026 (1 hari)</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        Selesai
+                      </span>
+                    </div>
                   </div>
                 }
               />
@@ -236,7 +256,7 @@ export default function Home() {
                 className="bg-card border-border/80 relative overflow-hidden group"
                 icon={<Users className="w-6 h-6" />}
                 title="Kontrol Terpadu Admin"
-                description="Sinkronisasi akun instan, kelola data pegawai, penyesuaian tanggal masuk, dan atur wewenang dengan kendali penuh."
+                description="Sinkronisasi instan data kepegawaian, penyesuaian saldo cuti, dan kelola wewenang persetujuan pejabat."
                 visual={
                   <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-border/60 p-4 space-y-3 transition-all duration-300 group-hover:border-primary/20">
                     <div className="flex items-center justify-between pb-2 border-b border-border/60">
@@ -246,7 +266,7 @@ export default function Home() {
                         Sistem Normal
                       </span>
                     </div>
-
+                    
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="p-2 bg-background rounded-xl border border-border/50 flex flex-col justify-center">
                         <span className="text-[9px] text-muted-foreground font-medium">Permintaan</span>
@@ -255,6 +275,17 @@ export default function Home() {
                       <div className="p-2 bg-background rounded-xl border border-border/50 flex flex-col justify-center">
                         <span className="text-[9px] text-muted-foreground font-medium">Pegawai</span>
                         <span className="text-xs font-black text-slate-800 dark:text-slate-200">42 Aktif</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground font-medium">Metode Approval</span>
+                        <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">Bertingkat</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground font-medium">Notifikasi WhatsApp</span>
+                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Aktif</span>
                       </div>
                     </div>
                   </div>
@@ -289,51 +320,40 @@ export default function Home() {
         </section>
 
         {/* Unified Bottom CTA & Footer Section */}
-        <section className="py-20 border-t border-border bg-slate-900 text-slate-350 relative overflow-hidden dark:bg-slate-950">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-550/10 via-transparent to-transparent -z-10" />
-          <div className="container mx-auto max-w-5xl px-6 space-y-16">
+        <section className="py-20 border-t border-border bg-accent/30 text-muted-foreground relative overflow-hidden backdrop-blur-xs">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent -z-10" />
+          <div className="container mx-auto max-w-5xl px-6">
             
-            {/* Top Heading */}
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                Siap mempermudah manajemen cuti instansi Anda?
-              </h2>
-              <p className="text-slate-400 text-sm md:text-base leading-relaxed">
-                Hubungi tim dukungan kami untuk pertanyaan kebijakan cuti, bantuan integrasi teknis, atau pengajuan demo sistem secara langsung.
-              </p>
-            </div>
-
             {/* Grid Content */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 border-t border-slate-800 pt-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               
-              {/* Column 1: Brand Info */}
-              <div className="space-y-4">
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-2xl tracking-tight text-white">Sicerdas</span>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Sistem manajemen cuti modern dan otomatis untuk instansi pemerintah dan swasta. Meningkatkan produktivitas birokrasi tanpa melanggar regulasi.
-                  </p>
-                </div>
-                <p className="text-xs text-slate-500">© 2026 Sicerdas. Hak cipta dilindungi.</p>
+              {/* Column 1: CTA Message */}
+              <div className="space-y-4 pr-4">
+                <h3 className="text-xl md:text-2xl font-bold tracking-tight text-foreground leading-snug">
+                  Siap mempermudah manajemen cuti instansi Anda?
+                </h3>
+                <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
+                  Hubungi tim dukungan kami untuk pertanyaan kebijakan cuti, bantuan integrasi teknis, atau pengajuan demo sistem secara langsung.
+                </p>
               </div>
 
               {/* Column 2: Support Contacts */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Hubungi Kami</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Hubungi Kami</h4>
                 <ul className="space-y-3.5 text-sm">
                   <li>
                     <a 
                       href="https://wa.me/6281234567890" 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="group flex items-start gap-3 text-slate-300 hover:text-white transition-colors"
+                      className="group flex items-start gap-3 text-foreground hover:text-primary transition-colors"
                     >
-                      <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-emerald-400 group-hover:bg-slate-700 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                         <Phone className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-xs">Utari, S.Sos</span>
-                        <span className="text-xs text-slate-400">Manager • +62 812-3456-7890</span>
+                        <span className="text-xs text-muted-foreground">Manager • +62 812-3456-7890</span>
                       </div>
                     </a>
                   </li>
@@ -342,14 +362,14 @@ export default function Home() {
                       href="https://wa.me/6287745457767" 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="group flex items-start gap-3 text-slate-300 hover:text-white transition-colors"
+                      className="group flex items-start gap-3 text-foreground hover:text-primary transition-colors"
                     >
-                      <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-emerald-400 group-hover:bg-slate-700 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                         <Phone className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-xs">Halo Huddin</span>
-                        <span className="text-xs text-slate-400">Developer • +62 877-4545-7767</span>
+                        <span className="text-xs text-muted-foreground">Developer • +62 877-4545-7767</span>
                       </div>
                     </a>
                   </li>
@@ -363,24 +383,24 @@ export default function Home() {
 
               {/* Column 3: Locations & Maps */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Lokasi Kantor & Studio</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Lokasi Kantor & Studio</h4>
                 <ul className="space-y-3.5 text-sm">
                   <li>
                     <a 
                       href="https://share.google/Kmir4nBfxlk1V3zCg" 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="group flex items-start gap-3 text-slate-300 hover:text-white transition-colors"
+                      className="group flex items-start gap-3 text-foreground hover:text-primary transition-colors"
                     >
-                      <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-red-400 group-hover:bg-slate-700 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-xs flex items-center gap-1">
                           Kantor Kelurahan Kramat Selatan
-                          <span className="text-[10px] text-slate-400 font-normal">(Utari)</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">(Utari)</span>
                         </span>
-                        <span className="text-[10px] text-slate-400 leading-relaxed mt-0.5">
+                        <span className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
                           Kec. Magelang Utara, Kota Magelang, Jawa Tengah 56115
                         </span>
                       </div>
@@ -391,17 +411,17 @@ export default function Home() {
                       href="https://share.google/CSGnr6dslbtDunnSp" 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="group flex items-start gap-3 text-slate-300 hover:text-white transition-colors"
+                      className="group flex items-start gap-3 text-foreground hover:text-primary transition-colors"
                     >
-                      <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-red-400 group-hover:bg-slate-700 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-xs flex items-center gap-1">
                           Home Studio
-                          <span className="text-[10px] text-slate-400 font-normal">(HaloHuddin)</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">(HaloHuddin)</span>
                         </span>
-                        <span className="text-[10px] text-slate-400 leading-relaxed mt-0.5">
+                        <span className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
                           Jl. Telaga Warna, Rejowinangun Utara, Kec. Magelang Tengah, Kota Magelang, Jawa Tengah
                         </span>
                       </div>
@@ -413,11 +433,15 @@ export default function Home() {
             </div>
 
             {/* Bottom Links */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-t border-slate-800/60 pt-8 text-xs text-slate-500">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-t border-border pt-8 text-xs text-muted-foreground/80 mt-12">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-center sm:text-left">
+                <span className="font-bold text-sm text-foreground tracking-tight">Sicerdas</span>
+                <span>© 2026. Hak cipta dilindungi.</span>
+              </div>
               <div className="flex gap-8 font-medium">
-                <Link href="#" className="hover:text-slate-300 transition-colors">Privasi</Link>
-                <Link href="#" className="hover:text-slate-300 transition-colors">Syarat</Link>
-                <Link href="#" className="hover:text-slate-300 transition-colors">Keamanan</Link>
+                <Link href="#" className="hover:text-primary transition-colors">Privasi</Link>
+                <Link href="#" className="hover:text-primary transition-colors">Syarat</Link>
+                <Link href="#" className="hover:text-primary transition-colors">Keamanan</Link>
               </div>
             </div>
 
